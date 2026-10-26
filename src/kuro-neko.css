@@ -1,0 +1,969 @@
+/* KuroNeko visual theme. Kept separate so application behavior stays untouched. */
+:root {
+  --ink: #27262B;
+  --muted: rgba(39, 38, 43, 0.62);
+  --paper: #F2EADF;
+  --line: rgba(39, 38, 43, 0.16);
+  --red: #BF2C2C;
+  --red-dark: #9D2424;
+  --cream: #F2EADF;
+  --red-soft: rgba(191, 44, 44, 0.1);
+  --ink-soft: rgba(39, 38, 43, 0.06);
+  --matcha: #7A8068;
+  color-scheme: light;
+}
+
+html { background: var(--paper); }
+body {
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(39, 38, 43, 0.035) 0.55px, transparent 0.55px);
+  background-size: 5px 5px;
+  font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif;
+}
+
+h1, h2, h3, button, input, select, textarea { font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif; }
+h1, h2 { color: var(--ink); font-weight: 700; }
+.eyebrow { color: var(--red); }
+
+/* Deep charcoal anchors the header while the page surfaces remain warm paper. */
+.navbar {
+  min-height: 78px;
+  padding-inline: clamp(12px, 1.5vw, 24px);
+  border-bottom: 1px solid rgba(242, 234, 223, 0.18);
+  background: var(--ink);
+  box-shadow: 0 3px 12px rgba(39, 38, 43, 0.06);
+}
+.navbar-inner { width: 100%; min-height: 78px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.language-select { display: inline-flex; align-items: center; flex: 0 0 auto; }
+.language-select select {
+  width: 58px;
+  min-width: 58px;
+  min-height: 32px;
+  padding: 4px 20px 4px 8px;
+  border: 1px solid rgba(242, 234, 223, 0.28);
+  border-radius: 999px;
+  color: var(--cream);
+  background-color: rgba(242, 234, 223, 0.08);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.language-select select:hover { background-color: rgba(242, 234, 223, 0.16); border-color: rgba(242, 234, 223, 0.55); }
+.language-select select:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+.language-select option { color: var(--ink); background: var(--paper); }
+.login-page { position: relative; }
+.login-language-select { position: absolute; z-index: 2; top: 18px; right: max(5vw, 20px); }
+.login-language-select select { min-height: 34px; color: var(--ink); border-color: var(--line); background-color: var(--paper); }
+.login-language-select select:hover { background-color: #fffaf3; }
+.brand { min-width: 190px; }
+.brand-logo-image { display: block; flex: 0 0 56px; width: 56px; height: 56px; object-fit: contain; }
+.brand-wordmark { display: flex; align-items: center; min-height: 56px; }
+.brand-wordmark strong { font-family: "Yuji Syuku", Georgia, serif; }
+.brand-mark, .login-brand-mark {
+  border: 1px solid rgba(242, 234, 223, 0.42);
+  color: var(--cream);
+  background: transparent;
+  font-family: "Yuji Syuku", serif;
+}
+.brand strong, .nav-links a, .user-name { color: var(--cream); }
+.brand strong { font-size: 0.92rem; letter-spacing: 0.14em; }
+.brand small { color: rgba(242, 234, 223, 0.68); }
+.brand-mark { flex: 0 0 auto; }
+.nav-links { justify-content: center; gap: clamp(10px, 0.9vw, 14px); }
+.nav-links a { position: relative; display: inline-flex; min-height: 44px; align-items: center; padding: 10px 12px; border-radius: 4px; color: rgba(242, 234, 223, 0.78); font-size: 0.82rem; font-weight: 500; letter-spacing: 0.035em; transition: color 160ms ease, background-color 160ms ease; }
+.nav-links .nav-page-link { gap: 5px; }
+.nav-page-indicator { display: inline-grid; place-items: center; font-size: 0.78rem; line-height: 1; opacity: 0.72; transition: opacity 160ms ease, transform 160ms ease; }
+.nav-page-link:hover .nav-page-indicator, .nav-page-link.active .nav-page-indicator { opacity: 1; transform: translate(1px, -1px); }
+.nav-links a::after {
+  position: absolute;
+  right: 12px;
+  bottom: 5px;
+  left: 12px;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--red);
+  content: "";
+  transition: transform 160ms ease;
+}
+.nav-links a:hover::after { transform: scaleX(1); }
+.nav-links a:hover { color: var(--cream); }
+.nav-links a:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+.nav-links a.active { color: var(--cream); background: transparent; font-weight: 700; }
+.nav-links a.active::after { height: 2px; transform: scaleX(1); transition: none; }
+.nav-user { justify-content: flex-end; gap: 10px; }
+.nav-user > * { flex-shrink: 0; }
+.cart-icon-link { border-color: rgba(242, 234, 223, 0.4); color: var(--cream); background: transparent; }
+.cart-icon-link:hover, .cart-icon-link.active { color: var(--ink); background: var(--cream); }
+.profile-link { min-height: 44px; padding: 4px 12px 4px 5px; }
+.profile-link:hover, .profile-link.active { background: rgba(242, 234, 223, 0.12); }
+.profile-link:hover .user-name, .profile-link.active .user-name { color: var(--cream); }
+
+.page-shell { padding-top: clamp(30px, 5vw, 58px); }
+.page-heading {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 30px;
+  padding: clamp(22px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--red);
+  border-radius: 12px;
+  color: var(--ink);
+  background: rgba(242, 234, 223, 0.94);
+  box-shadow: 0 8px 24px rgba(39, 38, 43, 0.045);
+}
+.page-heading { padding-right: 70px; }
+.page-heading.menu-page-heading-plain { overflow: visible; margin-bottom: 30px; padding: 0; border: 0; border-radius: 0; color: var(--ink); background: transparent; box-shadow: none; }
+.page-heading.my-orders-heading { overflow: visible; margin-bottom: 30px; padding: 0; border: 0; border-radius: 0; color: var(--ink); background: transparent; box-shadow: none; }
+.page-heading.my-orders-heading::after { display: none; }
+.my-orders-heading h1 { margin: 0; font-family: "Yuji Syuku", Georgia, serif; font-size: clamp(2.1rem, 4vw, 3rem); font-weight: 400; }
+.page-heading.menu-page-heading-plain::after { display: none; }
+.menu-page-heading-plain .eyebrow { color: var(--red); }
+.menu-page-heading-plain .muted { color: var(--muted); }
+.menu-page-title-row { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 18px; }
+.menu-page-title-row h1 { margin: 0; transform: translateY(10px); font-family: "Yuji Syuku", Georgia, serif; font-weight: 400; letter-spacing: 0; }
+.menu-page-title-row .button { flex: 0 0 auto; }
+.menu-page-title-row > .button { transform: translateY(20px); }
+.menu-page-title-row > .button:hover:not(:disabled) { transform: translateY(19px); }
+.page-heading::after {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  transform: none;
+  border: 0;
+  border-radius: 50%;
+  background: url("./assets/kuroneko-logo.png") center / contain no-repeat;
+  content: "";
+  opacity: 0.9;
+}
+.page-heading .eyebrow { color: var(--red); }
+.page-heading .muted { color: var(--muted); }
+
+.client-homepage { margin-top: calc(-1 * clamp(30px, 5vw, 58px)); }
+.client-hero {
+  position: relative;
+  width: 100%;
+  min-height: max(520px, calc(100svh - 78px));
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 64px);
+  padding: clamp(28px, 6vw, 74px);
+  border: 0;
+  border-radius: 0;
+  background: var(--ink);
+}
+.client-hero-background { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 54%; }
+.lantern-target { --lantern-x: 50%; --lantern-y: 50%; }
+.lantern-light { display: none; }
+.story-banner.lantern-target { position: relative; overflow: hidden; }
+.contact-footer-lantern-region { position: relative; overflow: hidden; isolation: isolate; background: var(--ink); }
+.contact-banner { position: relative; overflow: hidden; }
+.contact-footer-lantern-region .contact-banner,
+.contact-footer-lantern-region .home-footer { background: transparent; }
+.lantern-target > .lantern-light {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  background: radial-gradient(circle var(--lantern-radius, 200px) at var(--lantern-x) var(--lantern-y), var(--lantern-color), transparent 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.lantern-target.lantern-active > .lantern-light { opacity: 1; transition-duration: 250ms; }
+.client-hero.lantern-target { --lantern-radius: 300px; --lantern-color: rgba(255, 211, 145, 0.25); }
+.story-banner.lantern-target,
+.contact-footer-lantern-region { --lantern-color: rgba(242, 220, 170, 0.11); }
+.client-hero .client-hero-copy,
+.contact-banner .home-banner-inner, .story-banner .home-banner-inner,
+.home-footer-inner { position: relative; z-index: 1; }
+.client-hero::before { position: absolute; z-index: 1; inset: 0; background: linear-gradient(90deg, rgba(39, 38, 43, 0.86) 0%, rgba(39, 38, 43, 0.68) 43%, rgba(39, 38, 43, 0.12) 100%); pointer-events: none; content: ""; }
+.client-hero .eyebrow { color: #D9BEB1; }
+.client-hero-copy { position: relative; z-index: 3; max-width: 630px; }
+.client-hero h1 { margin-bottom: 15px; color: var(--cream); font-family: "Yuji Syuku", Georgia, serif; font-size: clamp(2.5rem, 5.5vw, 4.3rem); font-weight: 400; line-height: 1.1; }
+.client-hero p:not(.eyebrow) { color: rgba(242, 234, 223, 0.82); }
+.client-hero .hero-description { margin-bottom: 12px; }
+.client-hero .button { position: relative; z-index: 1; }
+.client-hero .hero-menu-link { margin-top: 10px; }
+.client-hero .button span { margin-left: 9px; font-size: 1.1em; }
+.hero-japanese { margin: 25px 0 0; color: #D9BEB1 !important; font-family: "Yuji Syuku", Georgia, serif; font-size: 1rem; letter-spacing: 0.08em; }
+.japanese-accent { margin: 2px 0 12px; color: var(--red); font-family: "Yuji Syuku", "Yu Gothic", serif; font-size: 0.92rem; letter-spacing: 0.09em; }
+.branch-japanese { margin-top: -5px; }
+.menu-japanese-kicker { margin: 6px 0 0; font-size: 1.25rem; }
+.client-homepage { gap: 0; }
+.page-shell:has(.client-homepage) { width: 100%; max-width: none; min-height: 0; margin: 0; padding: clamp(30px, 5vw, 58px) 0 0; }
+.page-shell:has(.profile-page.account-page),
+.page-shell:has(.menu-page-layout),
+.page-shell:has(.orders-page-layout),
+.page-shell:has(.admin-dashboard-layout) { padding-top: clamp(16px, 2.3vw, 34px); }
+.page-shell:has(.menu-page-layout) { width: 100%; max-width: none; margin: 0; padding-bottom: 80px; }
+.page-shell:has(.orders-page-layout) { width: 100%; max-width: none; margin: 0; padding-bottom: 80px; }
+.page-shell:has(.admin-dashboard-layout) { width: 100%; max-width: none; margin: 0; padding-bottom: 80px; }
+.orders-page-layout > *, .admin-dashboard-layout > * {
+  width: min(1600px, calc(100% - 144px));
+  margin-right: auto;
+  margin-left: auto;
+}
+.menu-page-layout { width: 100%; min-width: 0; }
+.menu-page-layout > .page-heading,
+.menu-page-layout > .menu-discovery,
+.menu-page-layout > .menu-admin-toolbar,
+.menu-page-layout > .message,
+.menu-page-layout > .empty-state,
+.menu-page-layout > .menu-results-heading,
+.menu-page-layout > .menu-grid,
+.menu-page-layout > .menu-pagination {
+  width: min(1600px, calc(100% - 144px));
+  margin-right: auto;
+  margin-left: auto;
+}
+.client-active-orders { width: 100%; padding: 28px max(24px, calc((100% - 1440px) / 2)) clamp(24px, 3vw, 32px); background: rgba(242, 234, 223, 0.92); }
+.home-banner { width: 100%; scroll-margin-top: 92px; }
+.client-hero { scroll-margin-top: 92px; }
+.home-banner-inner { width: min(1440px, calc(100% - 48px)); margin: 0 auto; padding: clamp(54px, 8vw, 96px) 0; }
+.signature-banner .home-banner-inner { padding-top: clamp(40px, 5vw, 48px); }
+.home-banner h2 { margin-bottom: 13px; font-family: "Yuji Syuku", Georgia, serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; }
+.home-banner .banner-intro { margin-bottom: 28px; color: var(--muted); }
+.signature-banner, .branches-banner { color: var(--ink); background: var(--paper); }
+.signature-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.signature-heading > div { min-width: 0; }
+.signature-heading .eyebrow { color: var(--red); font-family: "Yuji Syuku", Georgia, serif; font-size: 0.9rem; letter-spacing: 0.08em; text-transform: none; }
+.signature-heading .signature-japanese-label { margin: 6px 0 0; }
+.signature-title-line { display: flex; align-items: center; gap: clamp(12px, 2vw, 25px); }
+.signature-title-line h2 { flex: 0 0 auto; margin: 0; font-size: clamp(2rem, 3.5vw, 2.8rem); }
+.signature-rule { width: clamp(24px, 5vw, 55px); height: 1px; flex: 0 0 auto; background: rgba(39, 38, 43, 0.55); }
+.signature-title-line .signature-rule { align-self: center; transform: translateY(10px); }
+.signature-title-line p { margin: 0; color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; line-height: 1.5; text-transform: uppercase; transform: translateY(10px); }
+.branch-heading-line { display: flex; align-items: center; gap: clamp(12px, 2vw, 25px); margin-bottom: 8px; }
+.branch-heading-line h2 { flex: 0 0 auto; margin: 0; }
+.branch-heading-line .signature-rule, .branch-heading-caption { transform: translateY(10px); }
+.branch-heading-caption { margin: 0; color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; line-height: 1.5; }
+.signature-menu-link { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 9px; margin-left: auto; padding: 8px 0; border-bottom: 1px solid var(--red); color: var(--red); font-size: 0.77rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.signature-menu-link span { font-size: 1.15rem; transition: transform 160ms ease; }
+.signature-menu-link:hover span { transform: translateX(4px); }
+.signature-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 16px; margin-bottom: 26px; }
+.signature-card { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--line); color: var(--ink); background: rgba(255, 252, 246, 0.75); }
+.signature-card > div:last-child { display: flex; flex: 1; flex-direction: column; padding: 15px; }
+.signature-card h3 { margin: 4px 0 7px; font-family: "Yuji Syuku", Georgia, serif; font-size: 1.35rem; font-weight: 400; }
+.signature-card p { min-height: 3.6em; margin-bottom: 12px; color: var(--muted); font-size: 0.84rem; line-height: 1.5; }
+.signature-card strong { color: var(--red); }
+.signature-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+.signature-add-button { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--cream); background: var(--red); font-size: 1.3rem; line-height: 1; transition: transform 150ms ease, background-color 150ms ease; }
+.signature-add-button:hover { transform: scale(1.06); background: var(--red-dark); }
+.signature-add-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.image-placeholder-photo, .image-placeholder-mark { transition: transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.signature-category { color: var(--muted); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.signature-picture { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+.story-banner, .contact-banner { color: var(--cream); background: var(--ink); }
+.story-banner h2, .contact-banner h2 { color: var(--cream); }
+.contact-banner h2 { margin-bottom: 3px; }
+.story-banner .eyebrow, .contact-banner .eyebrow { color: #D9BEB1; }
+.story-layout { display: grid; grid-template-columns: 1fr 0.9fr; align-items: center; gap: clamp(30px, 7vw, 90px); }
+.story-layout > div:first-child { min-width: 0; }
+.story-heading-line { display: flex; align-items: center; gap: clamp(12px, 2vw, 25px); margin-bottom: 0; }
+.story-heading-line h2 { flex: 0 0 auto; margin: 0; }
+.story-heading-line .signature-rule { width: clamp(42px, 7vw, 100px); transform: translateY(10px); background: rgba(242, 234, 223, 0.55); }
+.story-layout .japanese-accent { margin-top: 5px; }
+.story-layout p:not(.eyebrow) { color: rgba(242, 234, 223, 0.78); line-height: 1.8; }
+.story-layout .interior-placeholder { width: 100%; height: auto; aspect-ratio: 4 / 3; margin: 0; }
+.branches-banner .branch-cards { margin-top: 30px; }
+.branch-heading-line .signature-rule { width: clamp(42px, 7vw, 100px); }
+.contact-banner .home-banner-inner { padding: clamp(30px, 4vw, 46px) 0; }
+.contact-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; align-items: center; gap: 48px; }
+.contact-layout > div:first-child { max-width: none; }
+.contact-layout p:not(.eyebrow) { color: rgba(242, 234, 223, 0.82); }
+.contact-details { display: grid; justify-self: end; gap: 13px; width: min(100%, 420px); }
+.contact-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 13px; min-height: 36px; color: var(--cream); font-size: 0.94rem; line-height: 1.5; }
+.contact-row svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+.contact-row svg .contact-icon-dot { fill: currentColor; stroke: none; }
+.contact-row:hover, .home-footer a:hover { color: #E6B7AA; }
+.contact-row:focus-visible, .home-footer-inner a:focus-visible { outline: 2px solid var(--cream); outline-offset: 4px; border-radius: 3px; }
+.home-footer { position: relative; width: 100%; overflow: hidden; color: rgba(242, 234, 223, 0.82); background: var(--ink); }
+.home-footer-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1.25fr 0.7fr 1fr 1.3fr; gap: 22px 32px; width: min(1440px, calc(100% - 48px)); margin: 0 auto; padding: 36px 0 18px; }
+.footer-column { display: flex; align-items: flex-start; flex-direction: column; gap: 10px; min-width: 0; }
+.footer-column h2 { margin: 0 0 5px; color: var(--cream); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; }
+.footer-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--cream); font-weight: 700; letter-spacing: 0.12em; }
+.footer-brand-logo { width: 58px; height: 58px; object-fit: contain; }
+.footer-brand-name { font-size: 1.2rem; }
+.footer-brand span[lang="ja"] { color: #D9BEB1; font-family: "Yuji Syuku", Georgia, serif; font-size: 1.5rem; }
+.footer-brand-column p, .footer-signup-column p { margin: 0; font-size: 0.76rem; line-height: 1.65; }
+.footer-brand-column .footer-japanese { color: #D9BEB1; font-family: "Yuji Syuku", "Yu Gothic", serif; letter-spacing: 0.08em; }
+.footer-quick-links a, .footer-contact-column > a { color: var(--cream); font-size: 0.8rem; line-height: 1.45; }
+.home-footer-inner a { color: var(--cream); text-decoration: none; transition: color 150ms ease; }
+.home-footer-inner a:hover { color: #D9BEB1; }
+.footer-social-links { display: flex; gap: 9px; margin-top: 4px; }
+.footer-social-links a { display: grid; width: 29px; height: 29px; place-items: center; border: 1px solid rgba(242, 234, 223, 0.48); border-radius: 50%; color: var(--cream); font-size: 0.88rem; }
+.footer-signup-form { display: flex; width: 100%; max-width: none; min-height: 40px; overflow: hidden; border: 1px solid rgba(242, 234, 223, 0.38); border-radius: 999px; background: var(--paper); transition: box-shadow 150ms ease, border-color 150ms ease; }
+.footer-signup-form:focus-within { border-color: var(--cream); box-shadow: 0 0 0 3px rgba(242, 234, 223, 0.22); }
+.footer-signup-form input { width: 100%; min-width: 0; padding: 9px 14px; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 0.76rem; }
+.footer-signup-form input:focus-visible { box-shadow: none; }
+.footer-signup-form button { display: grid; flex: 0 0 39px; place-items: center; border: 0; color: var(--cream); background: var(--red); font-size: 1.1rem; cursor: pointer; transition: background-color 150ms ease; }
+.footer-signup-form button:hover { background: var(--red-dark); }
+.footer-signup-toast { right: 24px; bottom: 24px; }
+.footer-copyright { grid-column: 1 / -1; padding-top: 17px; border-top: 1px solid rgba(242, 234, 223, 0.2); color: rgba(242, 234, 223, 0.78); font-size: 0.72rem; }
+.info-section { border: 1px solid var(--line); border-radius: 4px 16px 4px 16px; color: var(--ink); background: rgba(242, 234, 223, 0.96); }
+.info-section > p:last-of-type { color: var(--muted); }
+.info-section h2 { font-family: "Yuji Syuku", Georgia, serif; font-size: 2rem; font-weight: 400; }
+.branch-cards article { border-color: var(--line); color: var(--ink); background: rgba(242, 234, 223, 0.8); }
+.branch-cards article strong { color: var(--ink); }
+.branch-cards article span { color: var(--muted); }
+
+/* Cards use paper surfaces and fine ink lines for an editorial feel. */
+.summary-card, .order-card, .admin-order-row, .profile-card, .account-info-card,
+.menu-admin-panel, .dish-card, .cart-row, .checkout-card, .payment-card,
+.payment-summary, .receipt-card, .branch-cards article {
+  border-color: var(--line);
+  color: var(--ink);
+  background: rgba(242, 234, 223, 0.97);
+  box-shadow: 0 7px 20px rgba(39, 38, 43, 0.045);
+}
+.summary-card { border-top: 2px solid var(--red); color: var(--muted); }
+.summary-card strong, .order-card, .order-id, .order-items li, .checkout-items li,
+.order-total strong, .checkout-total strong, .dish-card h2, .cart-item-info h2,
+.fulfillment-detail, .payment-summary h2, .receipt-heading h2, .receipt-card h3 { color: var(--ink); }
+.order-card { border-radius: 4px 13px 4px 13px; }
+.payment-summary h2, .receipt-heading h2 { font-family: "Yuji Syuku", Georgia, serif; font-weight: 400; }
+.orders-grid { align-items: stretch; }
+.order-card { display: flex; min-width: 0; flex-direction: column; padding: 20px; }
+.order-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-width: 0; }
+.order-status-row { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; min-height: 30px; }
+.order-status-row > .status, .order-status-row > .dashboard-status { flex: 0 0 auto; }
+.order-card-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 12px; }
+.order-card-meta p { margin: 0; color: var(--muted); font-size: 0.76rem; }
+.order-card-meta .order-id { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+.fulfillment-detail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+.fulfillment-badge { display: inline-flex; min-height: 27px; align-items: center; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: rgba(39, 38, 43, 0.06); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.035em; }
+.fulfillment-delivery { border-color: var(--red); color: var(--cream); background: var(--red); }
+.fulfillment-pickup { border-color: var(--ink); color: var(--cream); background: var(--ink); }
+.fulfillment-address { min-width: 0; overflow-wrap: anywhere; }
+.order-card-content { display: grid; min-width: 0; margin-top: 10px; }
+.fulfillment-detail { overflow-wrap: anywhere; }
+.order-items li, .checkout-items li, .receipt-items li { align-items: baseline; }
+.order-items li > span:first-child, .checkout-items li > span:first-child, .receipt-items li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.order-items li > span:last-child, .checkout-items li > span:last-child, .receipt-items li > span:last-child { flex: 0 0 auto; white-space: nowrap; text-align: right; }
+.order-total strong, .checkout-total strong { flex: 0 0 auto; white-space: nowrap; text-align: right; }
+.order-items li, .checkout-items li { color: rgba(39, 38, 43, 0.82); }
+.order-card-content .payment-state-row { margin: 0; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.order-card .payment-countdown { flex-basis: 100%; color: #7A2020; font-size: 0.76rem; font-weight: 700; }
+.payment-expired-note { margin: 8px 0 0; color: #7A2020; font-size: 0.78rem; line-height: 1.45; }
+.order-card-content .order-items { gap: 8px; margin: 0; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.order-items-more { border-bottom: 1px solid var(--line); }
+.order-items-more summary { width: fit-content; padding: 9px 0; color: var(--muted); cursor: pointer; font-size: 0.78rem; font-weight: 700; }
+.order-items-more summary:hover { color: var(--red); }
+.order-items-scroll { max-height: 136px; overflow-y: auto; overscroll-behavior: contain; padding: 8px 6px 8px 0 !important; border-bottom: 0 !important; scrollbar-color: rgba(39, 38, 43, 0.35) transparent; scrollbar-width: thin; }
+.order-items-scroll li { min-height: 24px; }
+.order-card-content .order-total { padding: 12px 0 0; border-top: 0; }
+.order-card-content .order-total strong { font-size: 1.08rem; }
+.order-total, .checkout-total { border-top-color: var(--line); }
+.payment-state-row { padding-top: 10px; border-top: 1px solid var(--line); }
+.payment-paid { color: #fffaf1; background: var(--matcha); }
+.payment-unpaid { color: #fffaf1; background: var(--red); }
+.receipt-card { border-radius: 4px 16px 4px 16px; }
+.order-confirmation-intro { width: min(1200px, calc(100% - 48px)); margin: 0 auto 24px; color: var(--ink); }
+.order-confirmation-intro h1 { margin: 0 0 8px; font-family: "M PLUS Rounded 1c", sans-serif; }
+.order-confirmation-intro p { margin: 0; }
+.payment-received-intro { display: flex; align-items: center; flex-direction: column; gap: 12px; padding: 20px 0 8px; text-align: center; }
+.payment-received-intro h1 { margin: 0; }
+.payment-success-check { width: 72px; height: 72px; overflow: visible; }
+.payment-success-circle { fill: rgba(66, 132, 82, 0.1); stroke: #438552; stroke-width: 3; transform-origin: center; animation: payment-check-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.payment-success-tick { fill: none; stroke: #438552; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 48; stroke-dashoffset: 48; animation: payment-check-draw 420ms 260ms ease-out forwards; }
+@keyframes payment-check-pop { from { opacity: 0; transform: scale(0.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes payment-check-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .payment-success-circle, .payment-success-tick { animation: none; }
+  .payment-success-circle { opacity: 1; transform: none; }
+  .payment-success-tick { stroke-dashoffset: 0; }
+}
+.receipt-heading { border-bottom-color: var(--line); }
+.receipt-details div { border-bottom-color: var(--line); }
+.receipt-details dt { color: var(--muted); }
+.receipt-items li { color: rgba(39, 38, 43, 0.82); }
+.order-history { margin-top: 12px; border-top-color: var(--line); color: var(--ink); }
+.order-history li { color: rgba(39, 38, 43, 0.75); }
+.order-history li strong { color: var(--ink); }
+.order-total strong, .checkout-total strong, .dish-price, .cart-line-total { color: var(--red); }
+.cart-icon-link { position: relative; }
+.cart-count-badge { position: absolute; top: -5px; right: -5px; display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 4px; border: 1px solid var(--ink); border-radius: 999px; color: var(--cream); background: var(--red); font-size: 0.63rem; font-weight: 700; line-height: 1; }
+.cart-row .cart-line-total { color: var(--ink); }
+.cart-row > .danger-text { color: var(--red); }
+.cart-row .quantity-input { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; width: auto; color: var(--ink); font-size: 0.78rem; font-weight: 700; }
+.cart-row .quantity-input input { width: 68px; min-height: 36px; padding: 6px 8px; }
+.checkout-notes-field { display: grid; gap: 6px; }
+.checkout-notes-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 0.8rem; }
+.checkout-notes-label .muted { margin-left: auto; }
+.checkout-notes-field textarea { min-height: 42px; max-height: 8em; overflow-y: hidden; resize: none; line-height: 1.5; }
+.cart-page .cart-empty-state h3 { margin-bottom: 2px; }
+.cart-page .cart-empty-state > p { margin-bottom: 22px; }
+.cart-removal-confirmation .confirm-actions { flex-direction: row; align-items: stretch; justify-content: center; }
+.cart-removal-confirmation .confirm-actions .button { flex: 1 1 0; width: min(170px, 50%); min-width: 0; }
+.cart-removal-confirmation .confirm-actions .button-secondary { border-color: var(--red); color: var(--cream); background: var(--red); }
+.cart-removal-confirmation .confirm-actions .button-danger { border: 1px solid var(--line); color: var(--ink); background: var(--paper); }
+.order-card .status-pending { color: #684700; background: #F3D89A; }
+.order-card .status-preparing { color: var(--cream); background: #4A4850; }
+.order-card .status-ready, .order-card .status-done,
+.order-card .payment-paid { color: #174C30; background: #D5E8D7; }
+.order-card .status-cancelled { color: #49464D; background: #E3E0DC; }
+.order-card .payment-unpaid { color: #7A2020; background: #F3DADA; }
+.order-card .resume-payment { align-self: flex-start; width: fit-content; }
+.order-card .order-cancel-button { align-self: flex-start; min-height: 36px; margin-top: 10px; padding-inline: 13px; border-color: rgba(191, 44, 44, 0.45); color: #8A2525; background: transparent; }
+.order-card .order-cancel-button:hover { border-color: var(--red); color: var(--red); background: rgba(191, 44, 44, 0.08); }
+.order-list-vertical { grid-auto-rows: 1fr; align-items: stretch; }
+.order-list-vertical .order-card { height: 100%; padding: 20px; }
+.order-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.order-card-actions .resume-payment,
+.order-card-actions .order-cancel-button { width: auto; min-height: 36px; margin: 0; padding: 0 13px; }
+.order-list-vertical .order-card .order-history summary { color: var(--muted); font-size: 0.8rem; }
+.checkout-card { position: sticky; top: 98px; }
+.cart-page .checkout-card {
+  display: flex;
+  flex-direction: column;
+  min-height: max(420px, calc(100svh - 78px - clamp(30px, 5vw, 58px) - 24px));
+}
+.cart-price-section { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; }
+.cart-price-section h3 { margin: 0 0 8px; color: var(--ink); font-size: 0.84rem; }
+.cart-page .checkout-items.cart-price-list {
+  display: grid;
+  align-content: start;
+  row-gap: 0;
+  margin-right: -15px;
+  padding-right: 15px;
+  grid-auto-rows: auto;
+  min-height: 120px;
+  max-height: min(260px, 34svh);
+  flex: 1 1 160px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(191, 44, 44, 0.78) rgba(39, 38, 43, 0.08);
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+.cart-page .checkout-items.cart-price-list::-webkit-scrollbar { width: 8px; }
+.cart-page .checkout-items.cart-price-list::-webkit-scrollbar-track { border-radius: 999px; background: rgba(39, 38, 43, 0.08); }
+.cart-page .checkout-items.cart-price-list::-webkit-scrollbar-thumb { border: 2px solid var(--paper); border-radius: 999px; background: rgba(191, 44, 44, 0.78); }
+.cart-page .checkout-items.cart-price-list::-webkit-scrollbar-thumb:hover { background: var(--red); }
+.cart-page .checkout-items.cart-price-list li { padding: 15px 0; border-bottom: 1px solid rgba(39, 38, 43, 0.12); color: var(--ink); }
+.cart-page .checkout-items.cart-price-list li:last-child { border-bottom: 0; }
+.cart-page .checkout-items.cart-price-list li small { color: var(--muted); font-size: 0.78em; }
+.cart-page .checkout-items.cart-price-list li > span:last-child { color: var(--ink); font-weight: 700; }
+.cart-page .checkout-total { flex: 0 0 auto; }
+.cart-page .desktop-checkout-submit { flex: 0 0 auto; }
+.payment-demo-note { color: var(--muted); background: rgba(122, 128, 104, 0.12); }
+.payment-summary .checkout-total strong { color: var(--red); }
+.order-filters { border-color: var(--line); background: rgba(242, 234, 223, 0.96); }
+.order-filters label { color: var(--ink); }
+.profile-card label, .account-info-card, .account-details dt, .dish-description,
+.profile-card .muted, .account-info-card .muted, .branch-cards article span { color: var(--muted); }
+.account-details div { border-bottom-color: var(--line); }
+.info-section, .branch-cards article { box-shadow: 0 7px 20px rgba(39, 38, 43, 0.04); }
+.empty-state { border-color: rgba(39, 38, 43, 0.2); color: var(--ink); background: rgba(242, 234, 223, 0.92); }
+.empty-state .muted { color: var(--muted); }
+.message { color: var(--ink); background: rgba(39, 38, 43, 0.07); }
+.message-error { border: 1px solid rgba(191, 44, 44, 0.25); color: #8E2222; background: rgba(191, 44, 44, 0.09); }
+.message-success { border: 1px solid rgba(122, 128, 104, 0.3); color: #505843; background: rgba(122, 128, 104, 0.12); }
+.storage-warning { border-color: rgba(191, 44, 44, 0.22); color: #8E2222; background: rgba(191, 44, 44, 0.08); }
+.text-link { color: var(--red-dark); }
+
+/* Active order badges stay readable against their cream cards. */
+.client-active-orders .status-pending,
+.client-active-orders .status-ready { color: var(--cream); background: var(--red); }
+.client-active-orders .status-preparing { color: var(--cream); background: var(--ink); }
+.client-active-orders .payment-paid { color: var(--cream); background: var(--matcha); }
+.client-active-orders .payment-unpaid { color: var(--cream); background: var(--red); }
+.client-active-orders .order-cancel-button { align-self: flex-start; min-height: 34px; margin-top: 10px; padding: 7px 12px; font-size: 0.78rem; }
+.client-active-orders .resume-payment { align-self: flex-start; width: fit-content; min-height: 34px; margin-top: 10px; padding: 7px 12px; font-size: 0.8rem; }
+
+.button-primary { color: var(--cream); background: var(--red); }
+.button-primary:hover:not(:disabled) { background: var(--red-dark); }
+.button-secondary { border: 1px solid var(--line); color: var(--ink); background: transparent; }
+.button-secondary:hover { background: rgba(39, 38, 43, 0.06); }
+.button-quiet { color: var(--ink); }
+.add-dish-pill, .category-pill { border-color: var(--line); color: var(--ink); background: rgba(242, 234, 223, 0.94); }
+.category-pill:hover, .add-dish-pill:hover { border-color: var(--red); color: var(--red-dark); background: rgba(191, 44, 44, 0.06); }
+.category-pill.active { border-color: var(--red); color: var(--cream); background: var(--red); }
+.menu-category-list { display: flex; align-items: stretch; gap: 0; overflow-x: auto; margin-top: 0; padding: 7px; border: 1px solid rgba(39, 38, 43, 0.12); border-radius: 999px; background: rgba(242, 234, 223, 0.92); scrollbar-width: thin; overscroll-behavior-x: contain; scroll-snap-type: x proximity; }
+.menu-category-list .category-pill { display: flex; flex: 1 0 142px; align-items: center; justify-content: center; gap: 9px; min-height: 62px; padding: 8px 12px; border: 0; border-right: 1px solid rgba(39, 38, 43, 0.12); border-radius: 0; color: var(--ink); background: transparent; text-align: left; scroll-snap-align: start; transition: color 160ms ease, background-color 160ms ease; }
+.menu-category-list .category-pill:first-child { border-radius: 999px 0 0 999px; }
+.menu-category-list .category-pill:last-child { border-right: 0; border-radius: 0 999px 999px 0; }
+.menu-category-list .category-pill:hover:not(.active) { color: var(--red-dark); background: rgba(191, 44, 44, 0.06); }
+.menu-category-list .category-pill.active { align-self: stretch; border-color: transparent; border-radius: 7px; color: var(--cream); background: var(--red); }
+.menu-category-list .category-pill.active:first-child {
+  border-radius: 31px 7px 7px 31px;
+  clip-path: inset(0 round 31px 7px 7px 31px);
+}
+.menu-category-list .category-pill.active:last-child {
+  border-radius: 7px 31px 31px 7px;
+  clip-path: inset(0 round 7px 31px 31px 7px);
+}
+.category-icon { display: grid; flex: 0 0 42px; width: 42px; height: 36px; place-items: center; }
+.category-icon-picture { display: block; width: 44px; height: 38px; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.category-label { display: grid; gap: 3px; white-space: nowrap; }
+.category-label > span:first-child { font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif; font-size: 0.78rem; font-weight: 700; }
+.category-label > span:last-child { color: currentColor; font-family: "Yuji Syuku", Georgia, serif; font-size: 0.72rem; opacity: 0.76; }
+.menu-category-list .category-pill:focus-visible { position: relative; z-index: 1; outline: 3px solid var(--ink); outline-offset: -4px; }
+.menu-discovery { gap: 18px; margin-bottom: 30px; }
+.menu-results-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 15px; }
+.menu-results-heading h2 { margin: 0; font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif; font-size: 1.1rem; font-weight: 600; letter-spacing: 0; }
+.menu-results-heading span { color: var(--muted); font-size: 0.8rem; }
+.menu-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.dish-card { display: flex; height: 100%; flex-direction: column; border-radius: 10px; }
+.dish-card-body { display: flex; min-height: 122px; flex: 1; flex-direction: column; justify-content: space-between; gap: 12px; padding: 14px; }
+.dish-card-title { align-items: flex-start; min-width: 0; }
+.dish-card-title > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.dish-card-title > div { min-height: 42px; }
+.dish-card-title h2 { margin: 0 0 3px; font-family: "Yuji Syuku", Georgia, serif; font-size: 1.15rem; font-weight: 400; }
+.dish-japanese { color: var(--muted); font-family: "Yuji Syuku", Georgia, serif; font-size: 0.76rem; }
+.dish-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.dish-client-actions { display: flex; align-items: center; gap: 8px; }
+.dish-details-button { min-height: 34px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--red); background: transparent; font-size: 0.76rem; font-weight: 700; transition: border-color 150ms ease, background-color 150ms ease; }
+.dish-details-button:hover { border-color: var(--red); background: rgba(191, 44, 44, 0.07); }
+.dish-details-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.dish-price { margin: 0; color: var(--red); font-family: "Yuji Syuku", Georgia, serif; font-size: 1.02rem; }
+.add-to-cart-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--cream); background: var(--red); font-size: 1.25rem; line-height: 1; transition: transform 150ms ease, background 150ms ease; }
+.add-to-cart-icon:hover:not(:disabled) { transform: scale(1.06); background: var(--red-dark); }
+.add-to-cart-icon:disabled { cursor: not-allowed; background: #A8A39B; }
+.dish-admin-actions { align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.dish-admin-actions .button { min-height: 34px; padding: 0 10px; font-size: 0.77rem; }
+.menu-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 28px 0 8px; }
+.menu-pagination > span { min-width: 90px; color: var(--muted); font-size: 0.82rem; text-align: center; }
+.menu-pagination .button { min-height: 38px; }
+.dish-admin-actions .danger-text { color: #F07A72; }
+.dish-admin-actions .danger-text:hover { color: #FF9A91; background: rgba(240, 122, 114, 0.12); }
+.menu-card-image-wrap { position: relative; overflow: hidden; aspect-ratio: 3 / 2; }
+.dish-picture { width: 100%; height: 100%; border-radius: 0; }
+.menu-favorite-button { position: absolute; top: 10px; right: 10px; display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid rgba(39, 38, 43, 0.16); border-radius: 50%; color: var(--muted); background: rgba(242, 234, 223, 0.94); font-size: 1rem; transition: color 150ms ease, background-color 150ms ease, transform 150ms ease; }
+.menu-favorite-button.selected { color: var(--red); }
+.menu-favorite-button:hover { color: var(--red); transform: scale(1.05); }
+.menu-favorite-button:focus-visible, .add-to-cart-icon:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.dish-admin-actions .button { min-height: 34px; }
+.saved-checkout-address { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: rgba(122, 128, 104, 0.08); font-size: 0.8rem; line-height: 1.5; }
+.saved-checkout-address strong { color: var(--ink); }
+.dish-description { color: var(--muted); }
+.dish-unavailable { color: var(--muted); background: rgba(39, 38, 43, 0.05); }
+.dish-unavailable .dish-description, .dish-unavailable .dish-price { color: var(--muted); }
+.unavailable-label { color: var(--ink); background: rgba(39, 38, 43, 0.09); }
+.order-filters, .profile-card, .account-info-card, .menu-modal, .payment-card, .payment-summary { border-radius: 4px 14px 4px 14px; }
+.menu-modal { background: var(--paper); }
+.dish-details-modal { width: min(600px, 100%); }
+.dish-details-picture { width: 100%; height: auto; aspect-ratio: 4 / 3; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 4px 12px; }
+.dish-details-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.dish-details-meta > div { min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.dish-details-meta dt { color: var(--muted); font-size: 0.72rem; }
+.dish-details-meta dd { margin: 4px 0 0; color: var(--ink); font-size: 0.88rem; font-weight: 700; overflow-wrap: anywhere; }
+.dish-details-meta .dish-details-available { color: #526143; }
+.dish-details-meta .dish-details-unavailable { color: var(--red); }
+.dish-details-description { padding-top: 15px; border-top: 1px solid var(--line); }
+.dish-details-description h3 { margin: 0 0 7px; color: var(--ink); font-size: 0.92rem; }
+.dish-details-description p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.65; overflow-wrap: anywhere; }
+.confirm-card { color: var(--ink); background: var(--paper); }
+.confirm-card h2, .confirm-message { color: var(--ink); }
+.modal-backdrop { font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif; }
+.modal-backdrop h1, .modal-backdrop h2, .modal-backdrop h3 { font-family: "M PLUS Rounded 1c", "Yu Gothic", sans-serif; }
+.confirm-icon { color: var(--red); background: rgba(191, 44, 44, 0.1); }
+.cart-toast, .app-notification { border-color: rgba(39, 38, 43, 0.15); color: var(--cream); background: var(--ink); }
+
+/* Intentional image placeholders: actual uploads stay in app state for later asset replacement. */
+.image-placeholder {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  color: rgba(39, 38, 43, 0.6);
+  background-color: #E8DFD1;
+  background-image: repeating-linear-gradient(135deg, rgba(39, 38, 43, 0.025) 0 1px, transparent 1px 9px);
+}
+.image-placeholder::before, .image-placeholder::after { position: absolute; border: 1px solid rgba(39, 38, 43, 0.12); border-radius: 50%; content: ""; }
+.image-placeholder::before { width: 48%; aspect-ratio: 1; }
+.image-placeholder::after { width: 62%; aspect-ratio: 1; border-style: dashed; }
+.image-placeholder-mark { z-index: 1; color: rgba(39, 38, 43, 0.58); font-family: "Yuji Syuku", Georgia, serif; font-size: clamp(1.5rem, 4vw, 3rem); }
+.image-placeholder-label { position: absolute; z-index: 1; right: 8px; bottom: 8px; padding: 4px 7px; border: 1px solid rgba(39, 38, 43, 0.15); border-radius: 999px; color: rgba(39, 38, 43, 0.68); background: rgba(242, 234, 223, 0.88); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.image-placeholder-photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+.image-placeholder.has-image { background: #E8DFD1; background-image: none; }
+.image-placeholder.has-image::before, .image-placeholder.has-image::after { display: none; }
+.dish-picture { width: 100%; height: 100%; border-radius: 0; }
+.cart-picture { flex: 0 0 74px; width: 74px; height: 74px; border-radius: 9px; }
+.profile-image-placeholder { width: 100%; height: 100%; border-radius: 50%; }
+.avatar-image-placeholder { width: 100%; height: 100%; border-radius: inherit; background-color: rgba(242, 234, 223, 0.16); }
+.avatar-image-placeholder::before { width: 54%; }
+.avatar-image-placeholder::after { width: 68%; }
+.avatar-image-placeholder .image-placeholder-mark { color: var(--cream); font-size: 0.9rem; }
+.avatar-image-placeholder .image-placeholder-label { display: none; }
+.form-image-preview { width: min(260px, 100%); height: 130px; border-radius: 9px; }
+.menu-picture-field { display: grid; gap: 7px; }
+.menu-picture-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.menu-picture-preview .button { min-height: 36px; }
+.interior-placeholder { width: 100%; height: clamp(150px, 23vw, 250px); margin-top: 22px; border-radius: 4px 14px 4px 14px; }
+.branch-placeholder { width: 100%; height: auto; aspect-ratio: 16 / 10; margin-bottom: 5px; border-radius: 4px 10px 4px 10px; }
+.profile-image-placeholder .image-placeholder-label { display: none; }
+
+input, select, textarea { border-color: rgba(39, 38, 43, 0.2); color: var(--ink); background: #FBF7EF; }
+input:focus, select:focus, textarea:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(191, 44, 44, 0.14); }
+.login-page {
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 100svh;
+  background: var(--ink);
+  --lantern-color: rgba(242, 220, 170, 0.15);
+}
+.login-page::before {
+  position: absolute;
+  z-index: 0;
+  inset: -15%;
+  background: radial-gradient(ellipse 48% 56% at 50% 48%, rgba(242, 220, 170, 0.127), transparent 76%);
+  content: "";
+  pointer-events: none;
+  animation: login-lantern-breathe 6s ease-in-out infinite;
+}
+.login-page > * { position: relative; z-index: 1; }
+.login-page > .lantern-light { z-index: 0; }
+.login-card { position: relative; }
+.login-card-topline { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 3px; }
+.login-card .login-brand-mark { margin-bottom: 0; }
+.login-card > .eyebrow { margin-bottom: 5px; }
+.login-brand-logo { display: block; width: 161px; height: 161px; object-fit: contain; }
+.login-card-bottomline { display: flex; align-items: flex-start; gap: 14px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.login-card-bottomline .demo-accounts { flex: 1 1 auto; min-width: 0; margin-top: 0; padding-top: 0; border-top: 0; }
+.login-card .login-language-select { position: static; display: inline-flex; flex: 0 0 58px; width: 58px; margin: 0 0 0 auto; transform: none; }
+.login-card .login-language-select select { color: var(--ink); border-color: rgba(39, 38, 43, 0.3); background-color: var(--paper); }
+.login-card .login-language-select select:hover { background-color: #fffaf3; }
+.login-footer { color: rgba(242, 234, 223, 0.72); }
+@keyframes login-lantern-breathe {
+  0%, 100% { opacity: 0.56; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.login-card { border-color: var(--line); color: var(--ink); background: rgba(242, 234, 223, 0.97); box-shadow: 0 18px 50px rgba(39, 38, 43, 0.1); }
+.login-card h1, .login-card label, .login-card .demo-accounts strong { color: var(--ink); }
+.login-card > .muted, .login-card .demo-accounts { color: var(--muted); }
+.login-card .auth-switch { border: 1px solid var(--line); background: rgba(39, 38, 43, 0.06); }
+.login-card .auth-switch button { color: var(--muted); }
+.login-card .auth-switch button.selected { color: var(--cream); background: var(--red); }
+.login-card .auth-switch button:focus-visible, .login-card .button-primary:focus-visible { outline-color: var(--ink); }
+.login-card .demo-accounts { border-top-color: var(--line); }
+.login-brand-mark { color: var(--cream); background: var(--ink); }
+.profile-card .picture-picker { border-color: var(--line); color: var(--ink); }
+.profile-logout, .order-filters .button-quiet { border-color: var(--line); color: var(--ink); }
+.modal-close { color: var(--cream); background: var(--ink); }
+.modal-close:hover { background: var(--red); }
+.receipt-actions .button-secondary { color: var(--cream); background: var(--ink); }
+
+/* Account overview inspired by the provided profile layout. */
+.account-page-heading { display: flex; min-height: 0; align-items: center; margin-bottom: 18px; }
+.account-page-heading .eyebrow { margin-bottom: 3px; font-family: "Yuji Syuku", Georgia, serif; font-size: 0.9rem; letter-spacing: 0.08em; text-transform: none; }
+.account-page-heading h1 { margin-bottom: 4px; font-family: "Yuji Syuku", Georgia, serif; font-size: clamp(2.1rem, 4vw, 3rem); font-weight: 400; }
+.account-page-heading p:last-child { margin-bottom: 0; color: var(--muted); }
+.account-page-heading p.account-page-japanese { color: #BF2C2C; }
+.account-page-layout { display: grid; grid-template-columns: 218px minmax(0, 1fr); align-items: start; gap: 18px; }
+.account-sidebar { position: sticky; top: 96px; display: flex; min-height: 690px; overflow: hidden; flex-direction: column; padding: 18px 13px; border-radius: 10px; color: var(--cream); background: var(--ink); }
+.profile-sidebar-art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.82; background: linear-gradient(180deg, #38363C, #27262B 54%, #171619); }
+.profile-sidebar-art .image-placeholder-mark { display: none; }
+.profile-sidebar-art .image-placeholder-label { display: none; }
+.sidebar-profile, .account-section-nav, .account-sidebar-logout { position: relative; z-index: 1; }
+.sidebar-profile { display: grid; justify-items: center; gap: 7px; padding: 8px 3px 20px; text-align: center; }
+.sidebar-profile .avatar-large { width: 92px; height: 92px; margin-bottom: 2px; border: 2px solid rgba(242, 234, 223, 0.72); border-radius: 50%; }
+.sidebar-profile strong { color: var(--cream); font-size: 0.9rem; }
+.sidebar-profile > span { overflow-wrap: anywhere; color: rgba(242, 234, 223, 0.78); font-size: 0.72rem; }
+.account-section-nav { display: grid; gap: 5px; }
+.account-section-nav button, .account-section-nav a { display: flex; align-items: center; gap: 11px; min-height: 39px; padding: 8px 10px; border: 0; border-radius: 4px; color: rgba(242, 234, 223, 0.8); background: transparent; text-align: left; font-size: 0.8rem; }
+.account-section-nav a .account-nav-link-arrow { margin-left: auto; font-size: 1rem; text-decoration: underline; text-underline-offset: 3px; transition: transform 160ms ease; }
+.account-section-nav a:hover .account-nav-link-arrow { transform: translate(2px, -2px); }
+.account-section-nav button:hover, .account-section-nav a:hover { color: var(--cream); background: rgba(242, 234, 223, 0.1); }
+.account-section-nav button.selected, .account-section-nav a.selected { color: var(--cream); background: var(--red); }
+.account-sidebar-logout { margin-top: auto; padding: 10px; border: 1px solid rgba(242, 234, 223, 0.24); border-radius: 5px; color: var(--cream); background: transparent; }
+.account-sidebar-logout:hover { background: rgba(242, 234, 223, 0.1); }
+.account-content { display: grid; min-width: 0; gap: 14px; }
+.account-content > .favorites-section { order: 1; }
+.account-content > .orders-section { order: 2; }
+.account-section { scroll-margin-top: 98px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: rgba(242, 234, 223, 0.96); }
+.account-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.account-section-heading > div { display: flex; align-items: center; gap: 10px; }
+.account-section-heading h2 { margin: 0; font-family: "Yuji Syuku", Georgia, serif; font-size: 1.35rem; font-weight: 400; }
+.account-section-icon { display: grid; width: 22px; height: 22px; place-items: center; color: var(--red); }
+.account-edit-button, .account-add-button { min-height: 34px; padding: 0 12px; font-size: 0.75rem; }
+.personal-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.personal-info-grid > div { min-width: 0; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.personal-info-grid dt { margin-bottom: 3px; color: var(--muted); font-size: 0.72rem; }
+.personal-info-grid dd { margin: 0; overflow-wrap: anywhere; color: var(--ink); font-size: 0.83rem; font-weight: 600; }
+.security-section .small-text { margin: 12px 0 0; }
+.security-grid { max-width: 600px; }
+.personal-info-form, .address-edit-form { display: grid; gap: 12px; }
+.personal-info-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.personal-info-form label, .address-form-grid label { display: grid; gap: 5px; color: var(--muted); font-size: 0.78rem; }
+.personal-info-form .picture-picker { position: relative; display: inline-flex; width: max-content; max-width: 100%; height: 42px; min-height: 42px; align-items: center; gap: 9px; align-self: end; padding: 0 13px; border: 1px solid rgba(191, 44, 44, 0.35); border-radius: 6px; color: var(--red-dark); background: rgba(191, 44, 44, 0.06); cursor: pointer; font-size: 0.8rem; font-weight: 700; transition: color 150ms ease, background 150ms ease, border-color 150ms ease, transform 150ms ease; }
+.personal-info-form .picture-picker:hover { transform: translateY(-1px); border-color: var(--red); color: var(--cream); background: var(--red); }
+.personal-info-form .picture-picker > span { font-size: 1.05rem; }
+.personal-info-form .picture-picker:focus-within { outline: 3px solid rgba(191, 44, 44, 0.3); outline-offset: 3px; }
+.personal-info-form .picture-picker input { position: absolute; display: block; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.personal-info-form .message, .personal-info-form > .button { justify-self: start; }
+.saved-address-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.saved-address-card { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255, 252, 246, 0.6); }
+.saved-address-card > div:first-child { display: flex; align-items: flex-start; gap: 10px; }
+.saved-address-card p { margin: 3px 0; color: var(--muted); font-size: 0.76rem; overflow-wrap: anywhere; }
+.saved-address-card strong { font-size: 0.84rem; }
+.address-pin { color: var(--red); font-size: 1.1rem; }
+.main-address-badge { display: inline-flex; margin-left: 8px; padding: 2px 7px; border-radius: 99px; color: var(--cream); background: var(--red); font-size: 0.62rem; font-weight: 700; vertical-align: middle; }
+.profile-address-toast { position: fixed; z-index: 40; right: 24px; bottom: 24px; max-width: calc(100vw - 48px); padding: 13px 18px; border: 1px solid rgba(242, 234, 223, 0.2); border-left: 4px solid var(--red); border-radius: 10px; color: var(--cream); background: var(--ink); box-shadow: 0 10px 28px rgba(39, 38, 43, 0.22); pointer-events: none; animation: toast-lifetime 3.5s ease-in-out both; }
+.profile-success-toast { position: fixed; z-index: 40; right: 24px; bottom: 24px; max-width: calc(100vw - 48px); padding: 13px 18px; border: 1px solid rgba(242, 234, 223, 0.2); border-left: 4px solid var(--red); border-radius: 10px; color: var(--cream); background: var(--ink); box-shadow: 0 10px 28px rgba(39, 38, 43, 0.22); pointer-events: none; animation: toast-lifetime 3.5s ease-in-out both; }
+.storage-warning { position: fixed; z-index: 40; right: 24px; bottom: 24px; max-width: calc(100vw - 48px); border-left: 4px solid var(--red); border-radius: 10px; box-shadow: 0 10px 28px rgba(39, 38, 43, 0.22); pointer-events: none; animation: toast-lifetime 5s ease-in-out both; }
+.address-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.address-actions button:not(.button) { border: 0; color: var(--red-dark); background: transparent; font-size: 0.76rem; }
+.address-actions .main-address-button { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.address-edit-form { margin-top: 13px; padding: 14px; border: 1px dashed var(--line); border-radius: 7px; }
+.address-edit-form h3 { margin: 0; font-family: "Yuji Syuku", Georgia, serif; font-size: 1.15rem; font-weight: 400; }
+.address-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.address-wide-field { grid-column: 1 / -1; }
+.account-empty-state { display: grid; justify-items: center; gap: 8px; padding: 18px; border: 1px dashed var(--line); border-radius: 7px; color: var(--muted); text-align: center; font-size: 0.82rem; }
+.account-empty-state p { margin: 0; }
+.favorite-menu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.favorite-menu-card { overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 252, 246, 0.6); }
+.favorite-menu-picture { width: 100%; height: 100px; }
+.favorite-menu-card > div:last-child { position: relative; display: grid; gap: 5px; padding: 12px; }
+.favorite-menu-card h3 { margin: 0; padding-right: 20px; font-family: "Yuji Syuku", Georgia, serif; font-size: 1rem; font-weight: 400; }
+.favorite-menu-card strong { color: var(--red); font-family: "Yuji Syuku", Georgia, serif; font-size: 0.9rem; }
+.favorite-menu-card .button { min-height: 33px; margin-top: 4px; padding-block: 6px; font-size: 0.75rem; line-height: 1; }
+.favorite-remove { position: absolute; top: 8px; right: 8px; padding: 0; border: 0; color: var(--red); background: transparent; font-size: 1rem; }
+.account-section .order-filters { margin-bottom: 12px; }
+.account-section .orders-grid { grid-template-columns: 1fr; }
+.account-section .order-history { max-height: 220px; overflow: auto; }
+.profile-recent-order { display: grid; gap: 12px; }
+.profile-recent-order .order-card { padding: 18px; }
+.profile-orders-history-link { flex: 0 0 auto; min-height: 36px; padding-inline: 13px; font-size: 0.78rem; white-space: nowrap; }
+.order-list-vertical { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+@media (max-width: 1050px) {
+  .menu-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 850px) {
+  .nav-links { gap: 8px; }
+  .navbar-inner { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand controls" "links links"; gap: 8px 12px; padding-block: 10px; }
+  .navbar-inner > .brand { grid-area: brand; }
+  .navbar-inner > .nav-links { grid-area: links; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+  .navbar-inner > .nav-user { grid-area: controls; }
+  .home-footer-inner { grid-template-columns: 1fr 1fr; }
+  .footer-copyright { grid-column: 1 / -1; }
+  .client-hero { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .contact-layout { grid-template-columns: 1.2fr 0.8fr; gap: 32px; }
+  .signature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-page-layout { grid-template-columns: 190px minmax(0, 1fr); }
+  .favorite-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .orders-grid.order-list-vertical { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .home-banner, .client-hero { scroll-margin-top: 138px; }
+  .menu-page-title-row h1 { transform: translateY(10px); }
+  .menu-page-title-row > .button { transform: translateY(10px); }
+  .menu-page-title-row > .button:hover:not(:disabled) { transform: translateY(9px); }
+  .menu-page-title-row { flex-wrap: wrap; gap: 14px; }
+  .page-heading { gap: 14px; padding-right: clamp(18px, 5vw, 24px); }
+  .page-heading::after { display: none; }
+  .home-footer-inner { grid-template-columns: 1fr 1fr; gap: 24px 18px; padding-top: 30px; }
+  .footer-brand-column, .footer-signup-column { grid-column: 1 / -1; }
+  .footer-signup-form { max-width: none; }
+  .footer-copyright { grid-column: 1 / -1; }
+  .navbar { min-height: 0; }
+  .navbar-inner { min-height: 0; }
+  .nav-links { gap: 5px; scrollbar-color: rgba(242, 234, 223, 0.35) transparent; }
+  .nav-links a { min-height: 42px; padding-inline: 10px; }
+  .client-hero { grid-template-columns: 1fr; min-height: max(640px, calc(100svh - 78px)); padding: 32px 7vw; }
+  .client-hero h1 { font-size: clamp(2.4rem, 12vw, 3.5rem); }
+  .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .dish-card-body { min-height: 116px; padding: 12px; }
+  .dish-card-title h2 { font-size: 1rem; }
+  .menu-category-list .category-pill { flex-basis: 132px; min-height: 58px; padding-right: 9px; padding-left: 9px; }
+  .menu-category-list .category-pill.active:first-child { border-radius: 29px 7px 7px 29px; clip-path: inset(0 round 29px 7px 7px 29px); }
+  .menu-category-list .category-pill.active:last-child { border-radius: 7px 29px 29px 7px; clip-path: inset(0 round 7px 29px 29px 7px); }
+  .menu-pagination { gap: 9px; }
+  .account-page-heading { min-height: 0; }
+  .account-page-layout { grid-template-columns: 1fr; }
+  .account-sidebar { position: relative; top: auto; min-height: 0; padding: 12px; }
+  .profile-sidebar-art { height: 100%; }
+  .sidebar-profile { grid-template-columns: 54px 1fr; justify-items: start; padding: 4px 3px 12px; text-align: left; }
+  .sidebar-profile .avatar-large { grid-row: span 2; width: 50px; height: 50px; }
+  .sidebar-profile > span { grid-column: 2; }
+  .account-section-nav { display: flex; overflow-x: auto; }
+  .account-section-nav button { flex: 0 0 auto; }
+  .account-sidebar-logout { margin-top: 10px; }
+  .account-section { padding: 14px; }
+  .account-section-heading { align-items: flex-start; }
+  .personal-info-grid, .personal-info-form, .address-form-grid, .saved-address-grid, .favorite-menu-grid { grid-template-columns: 1fr; }
+  .address-wide-field { grid-column: auto; }
+  .home-banner-inner { width: calc(100% - 40px); padding: 48px 0; }
+  .signature-heading { align-items: flex-start; flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .signature-heading > div { flex: 1 1 100%; }
+  .signature-menu-link { align-self: flex-start; }
+  .signature-title-line { flex-wrap: wrap; row-gap: 6px; }
+  .signature-title-line p { flex-basis: 100%; transform: none; }
+  html.scroll-motion-enabled .signature-title-line p.divider-motion,
+  html.scroll-motion-enabled .branch-heading-caption.divider-motion { transform: none; }
+  .signature-title-line .signature-rule { transform: none; }
+  .branch-heading-line { flex-wrap: wrap; row-gap: 0; }
+  .branch-heading-caption { flex-basis: 100%; margin: 0 0 10px; transform: none; }
+  .signature-grid { grid-template-columns: 1fr; }
+  .signature-card { display: flex; }
+  .signature-picture { height: auto; min-height: 0; }
+  .signature-card p { min-height: 0; }
+  .story-layout { grid-template-columns: 1fr; }
+  .story-layout .interior-placeholder { height: auto; aspect-ratio: 4 / 3; }
+  .contact-layout { grid-template-columns: 1fr; align-items: start; gap: 20px; }
+  .contact-details { justify-self: start; width: 100%; gap: 10px; }
+  .page-heading::after { top: 12px; right: 12px; width: 40px; height: 40px; font-size: 0.68rem; }
+  .cart-picture { width: 58px; height: 58px; }
+  .branch-placeholder { height: auto; aspect-ratio: 16 / 10; }
+  .mobile-checkout-bar { border-top-color: rgba(242, 234, 223, 0.24); }
+}
+
+@media (max-width: 420px) {
+  .menu-grid { grid-template-columns: 1fr; }
+}
+
+/* Keep the contact and footer content aligned to one centered page width. */
+.contact-banner .home-banner-inner,
+.home-footer-inner { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
+
+@media (max-width: 560px) {
+  .contact-banner .home-banner-inner { padding: 30px 0; }
+  .contact-layout { grid-template-columns: 1fr; align-items: start; gap: 20px; }
+  .contact-details { justify-self: start; width: 100%; gap: 10px; }
+}
+
+/* Reveal grouped content and cards gently once as they enter the viewport. */
+html.scroll-motion-enabled .card-motion,
+html.scroll-motion-enabled .section-motion {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay, 0ms), transform 800ms cubic-bezier(0.22, 1, 0.36, 1) var(--motion-delay, 0ms);
+  will-change: transform, opacity;
+}
+html.scroll-motion-enabled .card-motion.scroll-motion-visible,
+html.scroll-motion-enabled .section-motion.scroll-motion-visible { opacity: 1; transform: translateY(0); }
+html.scroll-motion-enabled .dish-card.card-motion,
+html.scroll-motion-enabled .account-section.card-motion,
+html.scroll-motion-enabled .saved-address-card.card-motion,
+html.scroll-motion-enabled .favorite-menu-card.card-motion { transition-duration: 640ms; }
+html.scroll-motion-enabled .divider-motion {
+  opacity: 0.55;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1), transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.scroll-motion-enabled .signature-title-line .divider-motion { transform: translateY(10px) scaleX(0); }
+html.scroll-motion-enabled .branch-heading-line .divider-motion { transform: translateY(10px) scaleX(0); }
+html.scroll-motion-enabled .story-heading-line .divider-motion { transform: translateY(10px) scaleX(0); }
+html.scroll-motion-enabled .divider-motion.scroll-motion-visible { opacity: 1; transform: scaleX(1); }
+html.scroll-motion-enabled .signature-title-line .divider-motion.scroll-motion-visible,
+html.scroll-motion-enabled .branch-heading-line .divider-motion.scroll-motion-visible,
+html.scroll-motion-enabled .story-heading-line .divider-motion.scroll-motion-visible { transform: translateY(10px) scaleX(1); }
+.button, button { transition: background-color 280ms ease, background 280ms ease, color 280ms ease, border-color 280ms ease, box-shadow 280ms ease, transform 154ms ease; }
+a { transition: color 252ms ease, text-decoration-color 252ms ease, background-color 252ms ease; }
+.button:active, button:not(:disabled):active, .button:hover:not(:disabled):active { transform: scale(0.98); }
+
+.page-shell, .login-page { animation: page-content-arrive 900ms cubic-bezier(0.22, 1, 0.36, 1); }
+.login-page { animation: none !important; }
+.page-shell:has(.client-homepage) { animation: page-content-fade 900ms ease-out; }
+@keyframes page-content-arrive {
+  from { opacity: 0.92; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-content-fade {
+  from { opacity: 0.92; }
+  to { opacity: 1; }
+}
+
+/* Keep the active-link underline fixed to its link and reserve hover motion for the glow. */
+.nav-links { position: relative; isolation: isolate; }
+.nav-links a { z-index: 1; transition: color 308ms ease, background-color 308ms ease; }
+.nav-links a::before {
+  position: absolute;
+  z-index: -2;
+  inset: -8px -12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(242, 190, 115, 0.18), rgba(242, 190, 115, 0.07) 45%, transparent 73%);
+  content: "";
+  opacity: 0;
+  filter: blur(7px);
+  transition: opacity 308ms ease;
+}
+.nav-links a:hover::before, .nav-links a:focus-visible::before { opacity: 1; }
+.nav-links a::after {
+  display: block;
+  right: auto;
+  bottom: 5px;
+  left: 50%;
+  width: 28px;
+  height: 2px;
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
+  background: var(--red);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 364ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.nav-links a.active::after {
+  transform: translateX(-50%) scaleX(1);
+  opacity: 1;
+  visibility: visible;
+  animation: quicklink-underline-draw 476ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.nav-links a:hover:not(.active)::after { transform: translateX(-50%) scaleX(0); opacity: 0; visibility: hidden; }
+@keyframes quicklink-underline-draw {
+  from { transform: translateX(-50%) scaleX(0); opacity: 0.35; }
+  to { transform: translateX(-50%) scaleX(1); opacity: 1; }
+}
+
+/* Small shared transitions make controls feel responsive without changing behavior. */
+.signature-card, .dish-card, .order-card, .branch-cards article, .account-section,
+.saved-address-card, .favorite-menu-card { transition: transform 308ms ease, box-shadow 308ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .signature-card:hover, .dish-card:hover, .order-card:hover, .branch-cards article:hover,
+  .account-section:hover, .saved-address-card:hover, .favorite-menu-card:hover,
+  html.scroll-motion-enabled .card-motion.scroll-motion-visible:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(39, 38, 43, 0.09);
+  }
+}
+input, select, textarea { transition: border-color 252ms ease, box-shadow 252ms ease, background-color 252ms ease; }
+.menu-modal, .confirm-card { animation: modal-arrive 280ms ease-out both; }
+@keyframes modal-arrive {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 850px) {
+  .cart-page .checkout-card { min-height: 0; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dish-card:hover .image-placeholder-photo,
+  .signature-card:hover .image-placeholder-photo,
+  .branch-cards article:hover .image-placeholder-photo,
+  .dish-card:hover .image-placeholder-mark,
+  .signature-card:hover .image-placeholder-mark,
+  .branch-cards article:hover .image-placeholder-mark { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page::before { animation: none !important; opacity: 0; }
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .lantern-light { display: none !important; }
+  .page-shell, .page-shell:has(.client-homepage), .login-page { animation: none !important; }
+  .nav-links a, .nav-links a::after,
+  .image-placeholder-photo, .image-placeholder-mark,
+  .card-motion { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
+  .divider-motion { animation: none !important; transition: none !important; opacity: 1 !important; }
+  .card-motion, .section-motion { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
+  .button:active, button:not(:disabled):active { transform: none; }
+}
