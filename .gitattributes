@@ -1,0 +1,16 @@
+# Normalize line endings so git doesn't record CRLF/LF churn on every edit.
+# Applies to every file not matched below.
+* text=auto eol=lf
+
+# Explicitly mark binary files so they are never touched by line-ending normalization.
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.webp       binary
+*.ico        binary
+*.pdf        binary
+*.db         binary
+*.sqlite     binary
+*.sqlite3    binary
+*.node       binary
