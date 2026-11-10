@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output (rebuilt by GitHub Actions on every deploy; never commit it)
+dist/
+
+# Node / build intermediates
+.eslintcache
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
