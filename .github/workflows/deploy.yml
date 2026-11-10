@@ -1,0 +1,72 @@
+# Deploys the KuroNeko frontend to GitHub Pages on every push to main.
+#
+# How it works:
+#   build job  -> installs deps, runs `npm run build` (Vite -> dist/), uploads dist/
+#   deploy job -> publishes the uploaded artifact to GitHub Pages
+#
+# You set this up ONCE in the repo:
+#   Settings -> Pages -> "Build and deployment" source = "Deploy from a branch"
+#   branch = gh-pages (root). After the first successful run, Pages serves the site.
+#
+# The Vite base is hardcoded to /Kuroneko_V2.0/ in vite.config.js, which matches
+# this repo's Pages URL (https://YudhistiraSusilo.github.io/Kuroneko_V2.0/).
+#
+# NOTE: this only hosts the frontend. The Express + SQLite backend must run on its
+#       own host (Render / Railway / VPS). The frontend talks to it via its public URL.
+
+name: Deploy KuroNeko frontend to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Let you re-deploy on demand from the Actions tab.
+  workflow_dispatch:
+
+# Required permissions for the artifact-based Pages deploy.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; don't cancel an in-progress deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with Vite
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
