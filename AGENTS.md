@@ -124,10 +124,11 @@ admin must: **Settings → Pages → Build and deployment → Source = GitHub Ac
 uses `actions/deploy-pages`; the next push to `main` deploys automatically.
 
 ### P1 — Backend hosting (Reynard; course deadline ~Week 13)
-GitHub Pages only hosts the static frontend. The Express API needs its own host
-(Render / Railway / a VPS). **Watch out:** free-tier Render gives an **ephemeral filesystem**,
-so a file-based `kuroneko.db` gets wiped on rebuild — prefer a managed database (e.g. Postgres)
-or a host with persistent disk, or accept re-seeding on each cold start.
+`render.yaml` now defines the Render web service in Singapore using Turso for persistence.
+Create the Render Blueprint from the repository, supply `TURSO_DATABASE_URL` and
+`TURSO_AUTH_TOKEN`, then set the GitHub Actions variable `VITE_API_BASE_URL` to the deployed
+service URL. Free Render instances spin down after 15 minutes idle and can take about a minute
+to wake.
 
 ### P2 — The 3 missing dish images (anyone)
 Source real photos for **Tuna Nigiri, Yuzu Soda, Matcha Latte** into `menu pictures/`, then add

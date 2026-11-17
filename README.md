@@ -66,6 +66,12 @@ These credentials are for the demo only. The current frontend authentication is 
 
 The project is configured for GitHub Pages at `/Kuroneko_V2.0/`. Set the Pages build and deployment source to **GitHub Actions**, and add the repository Actions variable `VITE_API_BASE_URL` with the public API URL. Pushes to `main` deploy through `.github/workflows/deploy.yml`.
 
+### Backend API (Render + Turso)
+
+The root `render.yaml` defines a free Node web service in Singapore. In Render, create a Blueprint from this repository and enter `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` when prompted; Render generates `JWT_SECRET`. The service uses Turso for persistent data, so its ephemeral local filesystem is not used for live storage. Free Render services spin down after 15 minutes idle and can take about a minute to wake.
+
+After Render finishes deploying, copy the service's public `onrender.com` URL into the GitHub repository variable `VITE_API_BASE_URL` (**Settings → Secrets and variables → Actions → Variables**). The Pages workflow injects it at build time. For local development, keep the root `.env` set to `VITE_API_BASE_URL=http://localhost:3000`.
+
 **Live site**
 
 GitHub Pages hosts the frontend only. Deploy the API separately and set `VITE_API_BASE_URL` to its public URL for the frontend build. Set the API host's `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and `JWT_SECRET` secrets; never place them in frontend build variables. The backend uses Turso for live reads and writes.

@@ -10,8 +10,8 @@
 # The Vite base is hardcoded to /Kuroneko_V2.0/ in vite.config.js, which matches
 # this repo's Pages URL (https://YudhistiraSusilo.github.io/Kuroneko_V2.0/).
 #
-# NOTE: this only hosts the frontend. The Express + SQLite backend must run on its
-#       own host (Render / Railway / VPS). The frontend talks to it via its public URL.
+# NOTE: this only hosts the frontend. The Express + Turso backend runs separately;
+#       set the repository Actions variable VITE_API_BASE_URL to its public URL.
 
 name: Deploy KuroNeko frontend to GitHub Pages
 
