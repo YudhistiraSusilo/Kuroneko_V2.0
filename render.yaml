@@ -15,7 +15,7 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
-      - key: libsql://kuroneko-reynard.aws-ap-southeast-1.turso.io
+      - key: TURSO_DATABASE_URL
         sync: false
-      - key: eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTQ4OTg1MTMsImlkIjoiMDFhMWU3YzQtOTEwMS03ZWE5LThmZGEtZDMyMDg0N2M3YTZjIiwia2lkIjoiSF9DWWd4Vmc5VlFjZXZ2NTFWTFU0clRkUEJyV2N6dmQ2NEpaVEhWVUF5ayIsInJpZCI6IjllNWE3ZmRiLTk4OGMtNDg3Yi1iYWQ5LTJhMzQ4MWFkMWQyYyJ9.NmoUGmCMUoNnKZZy12R-d6rplhq5LSqPPql0g6LkfwJNG3RW0FgGjJV9ZljdkBFZLlHhV-c8HpNUa2ohZXcuCA
+      - key: TURSO_AUTH_TOKEN
         sync: false
