@@ -24,21 +24,24 @@ export default function OrderCard({ order, isAdmin = false, onUpdateOrderStatus,
   const remainingSeconds = paymentRemaining === null ? null : Math.ceil(paymentRemaining / 1000);
   const countdown = remainingSeconds === null ? '' : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
 
-  function changeStatus(event) {
+  async function changeStatus(event) {
     setActionError('');
-    const result = onUpdateOrderStatus(order.id, event.target.value);
-    if (result) setActionError(result);
+    try {
+      await onUpdateOrderStatus(order.id, event.target.value);
+    } catch (error) {
+      setActionError(error.message || 'The order status could not be updated. Please try again.');
+    }
   }
 
-  function confirmCancellation() {
+  async function confirmCancellation() {
     setActionError('');
-    const result = onCancelOrder(order.id);
-    if (result) {
-      setActionError(result);
+    try {
+      await onCancelOrder(order.id);
       setCancelOpen(false);
-      return;
+    } catch (error) {
+      setActionError(error.message || 'The order could not be cancelled. Please try again.');
+      setCancelOpen(false);
     }
-    setCancelOpen(false);
   }
 
   return <article className="order-card">

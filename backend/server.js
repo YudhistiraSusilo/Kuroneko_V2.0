@@ -1,29 +1,63 @@
 // ============================================
 //  kuroneko-api/server.js — Kuro Neko Food Ordering API
-//  Express + SQLite (better-sqlite3) + JWT auth
+//  Express + Turso/libSQL + JWT auth
 // ============================================
 
 const express = require("express");
-const Database = require("better-sqlite3");
+const { createClient } = require("@tursodatabase/serverless/compat");
+const LocalDatabase = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
-const PORT = 3000;
-const JWT_SECRET = "my-super-secret-key-change-this"; // For learning only
+const PORT = Number(process.env.PORT) || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "local-development-only-secret";
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET must be configured in production.");
+}
 const PAYMENT_WINDOW_MS = 15 * 60 * 1000;
 
-app.use(cors());           // Allow cross-origin requests (needed for the React client)
-app.use(express.json());   // Parse JSON request bodies
+app.use(cors()); // Allow cross-origin requests (needed for the React client)
+app.use(express.json()); // Parse JSON request bodies
 
 // ---------- Database setup ----------
 
-// Store the DB next to this file so it works from any terminal location.
-const db = new Database(path.join(__dirname, "kuroneko.db"));
+if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+  throw new Error("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set in backend/.env.");
+}
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
+const localDatabasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "kuroneko.db");
 
-db.exec(`
+// Async adapter keeps SQL parameter handling consistent across the API.
+function prepare(sql) {
+  return {
+    async get(...args) {
+      const result = await db.execute({ sql, args });
+      return result.rows[0] || undefined;
+    },
+    async all(...args) {
+      const result = await db.execute({ sql, args });
+      return result.rows;
+    },
+    async run(...args) {
+      const result = await db.execute({ sql, args });
+      return { changes: Number(result.rowsAffected || 0), lastInsertRowid: Number(result.lastInsertRowid || 0) };
+    }
+  };
+}
+const dbExec = (sql) => db.executeMultiple(sql);
+
+async function initializeDatabase() {
+  const priorTables = await db.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'");
+  const shouldImportLocal = priorTables.rows.length === 0 && fs.existsSync(localDatabasePath);
+
+  await dbExec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -40,7 +74,7 @@ db.exec(`
   )
 `);
 
-db.exec(`
+  await dbExec(`
   CREATE TABLE IF NOT EXISTS menu_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -52,7 +86,7 @@ db.exec(`
   )
 `);
 
-db.exec(`
+  await dbExec(`
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_code TEXT NOT NULL UNIQUE,
@@ -73,53 +107,75 @@ db.exec(`
   )
 `);
 
-// Migrate older databases that were created without the profile columns.
-function migrateUsersTable() {
-  const existingColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
-  const newColumns = [
+  // Migrate older databases that were created without the profile columns.
+  async function migrateUsersTable() {
+    const existingColumns = (await prepare("PRAGMA table_info(users)").all()).map((column) => column.name);
+    const newColumns = [
     ["email", "TEXT"],
     ["phone", "TEXT"],
     ["profile_picture", "TEXT"],
     ["addresses", "TEXT NOT NULL DEFAULT '[]'"],
     ["default_address_id", "TEXT"],
     ["favorite_menu_ids", "TEXT NOT NULL DEFAULT '[]'"],
-    ["created_at", "TEXT NOT NULL DEFAULT (datetime('now'))"],
-  ];
-  for (const [columnName, definition] of newColumns) {
-    if (!existingColumns.includes(columnName)) {
-      db.exec(`ALTER TABLE users ADD COLUMN ${columnName} ${definition}`);
-      console.log(`Migrated users table: added ${columnName}.`);
+    ["created_at", "TEXT NOT NULL DEFAULT (datetime('now'))"]];
+
+    for (const [columnName, definition] of newColumns) {
+      if (!existingColumns.includes(columnName)) {
+        await dbExec(`ALTER TABLE users ADD COLUMN ${columnName} ${definition}`);
+        console.log(`Migrated users table: added ${columnName}.`);
+      }
     }
   }
-}
 
-// Migrate older databases that were created without the order profile columns.
-function migrateOrdersTable() {
-  const existingColumns = db.prepare("PRAGMA table_info(orders)").all().map((column) => column.name);
-  const newColumns = [
+  // Migrate older databases that were created without the order profile columns.
+  async function migrateOrdersTable() {
+    const existingColumns = (await prepare("PRAGMA table_info(orders)").all()).map((column) => column.name);
+    const newColumns = [
     ["status_history", "TEXT NOT NULL DEFAULT '[]'"],
-    ["notes", "TEXT"],
-  ];
-  for (const [columnName, definition] of newColumns) {
-    if (!existingColumns.includes(columnName)) {
-      db.exec(`ALTER TABLE orders ADD COLUMN ${columnName} ${definition}`);
-      console.log(`Migrated orders table: added ${columnName}.`);
+    ["notes", "TEXT"]];
+
+    for (const [columnName, definition] of newColumns) {
+      if (!existingColumns.includes(columnName)) {
+        await dbExec(`ALTER TABLE orders ADD COLUMN ${columnName} ${definition}`);
+        console.log(`Migrated orders table: added ${columnName}.`);
+      }
     }
   }
-}
 
-migrateUsersTable();
-migrateOrdersTable();
+  await migrateUsersTable();
+  await migrateOrdersTable();
 
-// ---------- Seed data (only when the tables are empty) ----------
+  if (shouldImportLocal) {
+    const localDb = new LocalDatabase(localDatabasePath, { readonly: true });
+    try {
+      for (const table of ["users", "menu_items", "orders"]) {
+        const localTables = localDb.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table);
+        if (!localTables) continue;
+        const rows = localDb.prepare(`SELECT * FROM ${table}`).all();
+        for (const row of rows) {
+          const columns = Object.keys(row);
+          const placeholders = columns.map(() => "?").join(", ");
+          await db.execute({
+            sql: `INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`,
+            args: columns.map((column) => row[column]),
+          });
+        }
+      }
+      console.log("Imported the existing local database into the empty Turso database.");
+    } finally {
+      localDb.close();
+    }
+  }
 
-function seedDatabase() {
-  const menuCount = db.prepare("SELECT COUNT(*) AS count FROM menu_items").get().count;
-  if (menuCount === 0) {
-    const insertDish = db.prepare(
-      "INSERT INTO menu_items (name, description, price, category, available, picture) VALUES (?, ?, ?, ?, ?, ?)"
-    );
-    const menuSeed = [
+  // ---------- Seed data (only when the tables are empty) ----------
+
+  async function seedDatabase() {
+    const menuCount = (await prepare("SELECT COUNT(*) AS count FROM menu_items").get()).count;
+    if (menuCount === 0) {
+      const insertDish = prepare(
+        "INSERT INTO menu_items (name, description, price, category, available, picture) VALUES (?, ?, ?, ?, ?, ?)"
+      );
+      const menuSeed = [
       ["Shoyu Ramen", "Clear soy broth, springy noodles, and tender chashu.", 68000, "Ramen", 1, ""],
       ["Tuna Nigiri", "Fresh tuna over hand-pressed seasoned rice.", 54000, "Sushi", 1, ""],
       ["Salmon Aburi Roll", "Seared salmon roll finished with a savory glaze.", 58000, "Sushi", 1, ""],
@@ -140,76 +196,70 @@ function seedDatabase() {
       ["Chicken Karaage", "Japanese-style fried chicken with lemon.", 42000, "Side dishes", 1, ""],
       ["Agedashi Tofu", "Crisp tofu in a warm, savory dashi broth.", 36000, "Side dishes", 1, ""],
       ["Edamame", "Steamed young soybeans with flaky sea salt.", 26000, "Side dishes", 1, ""],
-      ["Unagi Nigiri", "Grilled eel glazed with sweet soy on seasoned rice.", 64000, "Sushi", 1, ""],
-    ];
-    const insertMenuSeed = db.transaction(() => {
-      for (const dish of menuSeed) insertDish.run(...dish);
-    });
-    insertMenuSeed();
-    console.log(`Seeded ${menuSeed.length} menu items.`);
-  }
+      ["Unagi Nigiri", "Grilled eel glazed with sweet soy on seasoned rice.", 64000, "Sushi", 1, ""]];
 
-  const userCount = db.prepare("SELECT COUNT(*) AS count FROM users").get().count;
-  if (userCount === 0) {
-    const insertUser = db.prepare(
-      "INSERT INTO users (username, password_hash, role, display_name) VALUES (?, ?, ?, ?)"
-    );
-    const userSeed = [
+      for (const dish of menuSeed) await insertDish.run(...dish);
+      console.log(`Seeded ${menuSeed.length} menu items.`);
+    }
+
+    const userCount = (await prepare("SELECT COUNT(*) AS count FROM users").get()).count;
+    if (userCount === 0) {
+      const insertUser = prepare(
+        "INSERT INTO users (username, password_hash, role, display_name) VALUES (?, ?, ?, ?)"
+      );
+      const userSeed = [
       ["client", "client123", "client", "Aiko Tanaka"],
-      ["admin", "admin123", "administrator", "Kuro Neko Admin"],
-    ];
-    const insertUsers = db.transaction(() => {
-      for (const [username, password, role, displayName] of userSeed) {
-        insertUser.run(username, bcrypt.hashSync(password, 10), role, displayName);
-      }
-    });
-    insertUsers();
-    console.log(`Seeded ${userSeed.length} users.`);
-  }
+      ["admin", "admin123", "administrator", "Kuro Neko Admin"]];
 
-  const orderCount = db.prepare("SELECT COUNT(*) AS count FROM orders").get().count;
-  if (orderCount === 0) {
-    const clientId = db.prepare("SELECT id FROM users WHERE username = 'client'").get().id;
-    const adminName = "Kuro Neko Admin";
-    // Keep the seed order inside the live 15-minute payment window so the demo shows a real countdown.
-    const createdAtRecent = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const createdAtHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const paidAt45MinAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
-    const insertOrder = db.prepare(`
+      for (const [username, password, role, displayName] of userSeed) {
+        await insertUser.run(username, bcrypt.hashSync(password, 10), role, displayName);
+      }
+      console.log(`Seeded ${userSeed.length} users.`);
+    }
+
+    const orderCount = (await prepare("SELECT COUNT(*) AS count FROM orders").get()).count;
+    if (orderCount === 0) {
+      const clientId = (await prepare("SELECT id FROM users WHERE username = 'client'").get()).id;
+      const adminName = "Kuro Neko Admin";
+      // Keep the seed order inside the live 15-minute payment window so the demo shows a real countdown.
+      const createdAtRecent = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const createdAtHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const paidAt45MinAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+      const insertOrder = prepare(`
       INSERT INTO orders (order_code, client_id, client_name, items, total, status, status_history, service_type, address, notes, payment_status, payment_method, payer_name, paid_at, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const orderSeed = [
+      const orderSeed = [
       [
-        "KN-1001", clientId, "Aiko Tanaka",
-        JSON.stringify([{ name: "Shoyu Ramen", quantity: 2, price: 68000 }]),
-        136000, "Pending",
-        JSON.stringify([{ status: "Pending", changedAt: createdAtRecent, changedBy: "Aiko Tanaka" }]),
-        "Pickup", null, null, "Unpaid", null, null, null, createdAtRecent,
-      ],
-      [
-        "KN-1002", null, "Ren Sato",
-        JSON.stringify([
-          { name: "Chicken Katsu Curry", quantity: 1, price: 72000 },
-          { name: "Gyoza (5 pcs)", quantity: 1, price: 32000 },
-        ]),
-        104000, "Done",
-        JSON.stringify([
-          { status: "Pending", changedAt: createdAtHourAgo, changedBy: "Ren Sato" },
-          { status: "Done", changedAt: paidAt45MinAgo, changedBy: adminName },
-        ]),
-        "Delivery", "Jl. Melati No. 12, Jakarta", null, "Paid", "Bank transfer (demo)", "Ren Sato", paidAt45MinAgo, createdAtHourAgo,
-      ],
-    ];
-    const insertOrders = db.transaction(() => {
-      for (const row of orderSeed) insertOrder.run(...row);
-    });
-    insertOrders();
-    console.log(`Seeded ${orderSeed.length} orders.`);
-  }
-}
+      "KN-1001", clientId, "Aiko Tanaka",
+      JSON.stringify([{ name: "Shoyu Ramen", quantity: 2, price: 68000 }]),
+      136000, "Pending",
+      JSON.stringify([{ status: "Pending", changedAt: createdAtRecent, changedBy: "Aiko Tanaka" }]),
+      "Pickup", null, null, "Unpaid", null, null, null, createdAtRecent],
 
-seedDatabase();
+      [
+      "KN-1002", null, "Ren Sato",
+      JSON.stringify([
+      { name: "Chicken Katsu Curry", quantity: 1, price: 72000 },
+      { name: "Gyoza (5 pcs)", quantity: 1, price: 32000 }]
+      ),
+      104000, "Done",
+      JSON.stringify([
+      { status: "Pending", changedAt: createdAtHourAgo, changedBy: "Ren Sato" },
+      { status: "Done", changedAt: paidAt45MinAgo, changedBy: adminName }]
+      ),
+      "Delivery", "Jl. Melati No. 12, Jakarta", null, "Paid", "Bank transfer (demo)", "Ren Sato", paidAt45MinAgo, createdAtHourAgo]];
+
+
+      for (const row of orderSeed) await insertOrder.run(...row);
+      console.log(`Seeded ${orderSeed.length} orders.`);
+    }
+  }
+
+  await seedDatabase();
+}
+const dbReady = initializeDatabase();
+app.use(async (req, res, next) => dbReady.then(() => next()).catch(next));
 
 // ---------- Helpers ----------
 
@@ -235,7 +285,7 @@ function formatProfile(row) {
     addresses: parseJsonList(row.addresses),
     defaultAddressId: row.default_address_id,
     favoriteMenuIds: parseJsonList(row.favorite_menu_ids),
-    createdAt: row.created_at,
+    createdAt: row.created_at
   };
 }
 
@@ -255,23 +305,23 @@ function appendHistory(raw, entry) {
 }
 
 // Unpaid orders past their 15-minute payment window are cancelled automatically.
-function autoCancelExpiredOrders() {
+async function autoCancelExpiredOrders() {
   const cutoff = new Date(Date.now() - PAYMENT_WINDOW_MS).toISOString();
-  const expired = db.prepare(
+  const expired = await prepare(
     "SELECT * FROM orders WHERE payment_status = 'Unpaid' AND status = 'Pending' AND created_at < ?"
   ).all(cutoff);
-  const update = db.prepare("UPDATE orders SET status = 'Cancelled', status_history = ? WHERE id = ?");
+  const update = prepare("UPDATE orders SET status = 'Cancelled', status_history = ? WHERE id = ?");
   for (const row of expired) {
-    update.run(appendHistory(row.status_history, {
+    await update.run(appendHistory(row.status_history, {
       status: "Cancelled",
       changedAt: new Date().toISOString(),
-      changedBy: "System",
+      changedBy: "System"
     }), row.id);
   }
 }
 
-function findOrder(param) {
-  return db.prepare("SELECT * FROM orders WHERE order_code = ? OR id = ?").get(param, param);
+async function findOrder(param) {
+  return await prepare("SELECT * FROM orders WHERE order_code = ? OR id = ?").get(param, param);
 }
 
 function formatOrder(row) {
@@ -291,14 +341,14 @@ function formatOrder(row) {
     paymentMethod: row.payment_method,
     payerName: row.payer_name,
     paidAt: row.paid_at,
-    createdAt: row.created_at,
+    createdAt: row.created_at
   };
 }
 
 // ---------- Auth routes ----------
 
 // Register a new user (clients only — administrators are seeded, not created)
-app.post("/api/auth/register", (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   const { username, password, displayName } = req.body;
 
   if (!username || !password) {
@@ -314,17 +364,17 @@ app.post("/api/auth/register", (req, res) => {
   const cleanUsername = username.trim();
   const cleanDisplayName = (displayName || cleanUsername).trim();
 
-  const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(cleanUsername);
+  const existing = await prepare("SELECT id FROM users WHERE username = ?").get(cleanUsername);
   if (existing) {
     return res.status(400).json({ error: "That username is already taken. Please choose another." });
   }
 
   const hash = bcrypt.hashSync(password, 10);
-  const result = db.prepare(
+  const result = await prepare(
     "INSERT INTO users (username, password_hash, role, display_name) VALUES (?, ?, 'client', ?)"
   ).run(cleanUsername, hash, cleanDisplayName);
 
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(result.lastInsertRowid);
+  const user = await prepare("SELECT * FROM users WHERE id = ?").get(result.lastInsertRowid);
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role, displayName: user.display_name },
     JWT_SECRET,
@@ -335,14 +385,14 @@ app.post("/api/auth/register", (req, res) => {
 });
 
 // Login — returns a JWT
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required." });
   }
 
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username.trim());
+  const user = await prepare("SELECT * FROM users WHERE username = ?").get(username.trim());
   if (!user) {
     return res.status(401).json({ error: "That username and password do not match. Please try again." });
   }
@@ -398,19 +448,19 @@ function formatDish(row) {
     price: row.price,
     category: row.category,
     available: Boolean(row.available),
-    picture: row.picture,
+    picture: row.picture
   };
 }
 
 // GET all menu items (public)
-app.get("/api/menu", (req, res) => {
-  const rows = db.prepare("SELECT * FROM menu_items").all();
+app.get("/api/menu", async (req, res) => {
+  const rows = await prepare("SELECT * FROM menu_items").all();
   res.json(rows.map(formatDish));
 });
 
 // GET one menu item (public)
-app.get("/api/menu/:id", (req, res) => {
-  const row = db.prepare("SELECT * FROM menu_items WHERE id = ?").get(req.params.id);
+app.get("/api/menu/:id", async (req, res) => {
+  const row = await prepare("SELECT * FROM menu_items WHERE id = ?").get(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "Menu item not found." });
   }
@@ -418,7 +468,7 @@ app.get("/api/menu/:id", (req, res) => {
 });
 
 // CREATE a menu item (admin)
-app.post("/api/menu", requireAuth, requireAdmin, (req, res) => {
+app.post("/api/menu", requireAuth, requireAdmin, async (req, res) => {
   const { name, description, price, category, available, picture } = req.body;
 
   if (!name || name.trim() === "") {
@@ -431,7 +481,7 @@ app.post("/api/menu", requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: "`category` must be one of: Sushi, Sashimi, Ramen, Drinks, Side dishes." });
   }
 
-  const result = db.prepare(
+  const result = await prepare(
     "INSERT INTO menu_items (name, description, price, category, available, picture) VALUES (?, ?, ?, ?, ?, ?)"
   ).run(
     name.trim(),
@@ -442,12 +492,12 @@ app.post("/api/menu", requireAuth, requireAdmin, (req, res) => {
     (picture || "").trim()
   );
 
-  const created = db.prepare("SELECT * FROM menu_items WHERE id = ?").get(result.lastInsertRowid);
+  const created = await prepare("SELECT * FROM menu_items WHERE id = ?").get(result.lastInsertRowid);
   res.status(201).json(formatDish(created));
 });
 
 // UPDATE a menu item (admin)
-app.put("/api/menu/:id", requireAuth, requireAdmin, (req, res) => {
+app.put("/api/menu/:id", requireAuth, requireAdmin, async (req, res) => {
   const { name, description, price, category, available, picture } = req.body;
 
   if (!name || name.trim() === "") {
@@ -460,7 +510,7 @@ app.put("/api/menu/:id", requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: "`category` must be one of: Sushi, Sashimi, Ramen, Drinks, Side dishes." });
   }
 
-  const result = db.prepare(
+  const result = await prepare(
     "UPDATE menu_items SET name = ?, description = ?, price = ?, category = ?, available = ?, picture = ? WHERE id = ?"
   ).run(
     name.trim(),
@@ -476,13 +526,13 @@ app.put("/api/menu/:id", requireAuth, requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Menu item not found." });
   }
 
-  const updated = db.prepare("SELECT * FROM menu_items WHERE id = ?").get(req.params.id);
+  const updated = await prepare("SELECT * FROM menu_items WHERE id = ?").get(req.params.id);
   res.json(formatDish(updated));
 });
 
 // DELETE a menu item (admin)
-app.delete("/api/menu/:id", requireAuth, requireAdmin, (req, res) => {
-  const result = db.prepare("DELETE FROM menu_items WHERE id = ?").run(req.params.id);
+app.delete("/api/menu/:id", requireAuth, requireAdmin, async (req, res) => {
+  const result = await prepare("DELETE FROM menu_items WHERE id = ?").run(req.params.id);
 
   if (result.changes === 0) {
     return res.status(404).json({ error: "Menu item not found." });
@@ -494,18 +544,18 @@ app.delete("/api/menu/:id", requireAuth, requireAdmin, (req, res) => {
 // ---------- Orders routes ----------
 
 // GET orders — admin sees all, a client sees only their own
-app.get("/api/orders", requireAuth, (req, res) => {
-  autoCancelExpiredOrders();
-  const rows = req.user.role === "administrator"
-    ? db.prepare("SELECT * FROM orders ORDER BY created_at DESC").all()
-    : db.prepare("SELECT * FROM orders WHERE client_id = ? ORDER BY created_at DESC").all(req.user.id);
+app.get("/api/orders", requireAuth, async (req, res) => {
+  await autoCancelExpiredOrders();
+  const rows = req.user.role === "administrator" ? await
+  prepare("SELECT * FROM orders ORDER BY created_at DESC").all() : await
+  prepare("SELECT * FROM orders WHERE client_id = ? ORDER BY created_at DESC").all(req.user.id);
   res.json(rows.map(formatOrder));
 });
 
 // GET one order — admin sees any, a client sees only their own
-app.get("/api/orders/:id", requireAuth, (req, res) => {
-  autoCancelExpiredOrders();
-  const row = findOrder(req.params.id);
+app.get("/api/orders/:id", requireAuth, async (req, res) => {
+  await autoCancelExpiredOrders();
+  const row = await findOrder(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "Order not found." });
   }
@@ -516,7 +566,7 @@ app.get("/api/orders/:id", requireAuth, (req, res) => {
 });
 
 // CREATE an order (clients only — administrators manage the menu, not orders)
-app.post("/api/orders", requireAuth, (req, res) => {
+app.post("/api/orders", requireAuth, async (req, res) => {
   if (req.user.role !== "client") {
     return res.status(403).json({ error: "Only clients can place orders." });
   }
@@ -526,7 +576,7 @@ app.post("/api/orders", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Your cart is empty. Add an available dish from the menu first." });
   }
   const invalidItem = items.some((item) =>
-    !item.name || !Number.isInteger(item.quantity) || item.quantity < 1 || !Number.isFinite(item.price) || item.price <= 0
+  !item.name || !Number.isInteger(item.quantity) || item.quantity < 1 || !Number.isFinite(item.price) || item.price <= 0
   );
   if (invalidItem) {
     return res.status(400).json({ error: "A dish quantity or price is invalid. Review the cart before placing your order." });
@@ -541,10 +591,10 @@ app.post("/api/orders", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Please enter a delivery address before continuing." });
   }
 
-  const nextNumber = db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS next FROM orders").get().next;
+  const nextNumber = (await prepare("SELECT COALESCE(MAX(id), 0) + 1 AS next FROM orders").get()).next;
   const orderCode = `KN-${1000 + nextNumber}`;
   const createdAt = new Date().toISOString();
-  const result = db.prepare(`
+  const result = await prepare(`
     INSERT INTO orders (order_code, client_id, client_name, items, total, status, status_history, service_type, address, notes, payment_status, created_at)
     VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?, 'Unpaid', ?)
   `).run(
@@ -560,19 +610,19 @@ app.post("/api/orders", requireAuth, (req, res) => {
     createdAt
   );
 
-  const created = db.prepare("SELECT * FROM orders WHERE id = ?").get(result.lastInsertRowid);
+  const created = await prepare("SELECT * FROM orders WHERE id = ?").get(result.lastInsertRowid);
   res.status(201).json(formatOrder(created));
 });
 
 // UPDATE order status (admin only)
-app.put("/api/orders/:id/status", requireAuth, requireAdmin, (req, res) => {
+app.put("/api/orders/:id/status", requireAuth, requireAdmin, async (req, res) => {
   const { status } = req.body;
   const validStatuses = ["Pending", "Preparing", "Ready", "Done"];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: "Choose a valid order status." });
   }
 
-  const row = findOrder(req.params.id);
+  const row = await findOrder(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "This order could not be found. Refresh the page and try again." });
   }
@@ -583,12 +633,12 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, (req, res) => {
     return res.status(400).json({ error: "This order must be paid before its kitchen status can change." });
   }
 
-  const result = db.prepare("UPDATE orders SET status = ?, status_history = ? WHERE id = ?").run(
+  const result = await prepare("UPDATE orders SET status = ?, status_history = ? WHERE id = ?").run(
     status,
     appendHistory(row.status_history, {
       status,
       changedAt: new Date().toISOString(),
-      changedBy: req.user.displayName,
+      changedBy: req.user.displayName
     }),
     row.id
   );
@@ -597,16 +647,16 @@ app.put("/api/orders/:id/status", requireAuth, requireAdmin, (req, res) => {
     return res.status(404).json({ error: "Order not found." });
   }
 
-  res.json(formatOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
+  res.json(formatOrder(await prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
 });
 
 // CANCEL an order (clients cancel their own pending orders)
-app.put("/api/orders/:id/cancel", requireAuth, (req, res) => {
+app.put("/api/orders/:id/cancel", requireAuth, async (req, res) => {
   if (req.user.role !== "client") {
     return res.status(403).json({ error: "Only clients can cancel an order." });
   }
 
-  const row = findOrder(req.params.id);
+  const row = await findOrder(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "This order could not be found. Refresh the page and try again." });
   }
@@ -620,25 +670,25 @@ app.put("/api/orders/:id/cancel", requireAuth, (req, res) => {
     return res.status(400).json({ error: "Paid orders cannot be cancelled here. Please contact the restaurant about a refund." });
   }
 
-  db.prepare("UPDATE orders SET status = 'Cancelled', status_history = ? WHERE id = ?").run(
+  await prepare("UPDATE orders SET status = 'Cancelled', status_history = ? WHERE id = ?").run(
     appendHistory(row.status_history, {
       status: "Cancelled",
       changedAt: new Date().toISOString(),
-      changedBy: req.user.displayName,
+      changedBy: req.user.displayName
     }),
     row.id
   );
 
-  res.json(formatOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
+  res.json(formatOrder(await prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
 });
 
 // PAY an order (clients, within the 15-minute payment window)
-app.put("/api/orders/:id/payment", requireAuth, (req, res) => {
+app.put("/api/orders/:id/payment", requireAuth, async (req, res) => {
   if (req.user.role !== "client") {
     return res.status(403).json({ error: "Only clients can update payment details." });
   }
 
-  const row = findOrder(req.params.id);
+  const row = await findOrder(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "This order could not be found in your account." });
   }
@@ -664,20 +714,20 @@ app.put("/api/orders/:id/payment", requireAuth, (req, res) => {
   }
 
   const paidAt = new Date().toISOString();
-  db.prepare(
+  await prepare(
     "UPDATE orders SET payment_status = 'Paid', payment_method = ?, payer_name = ?, paid_at = ? WHERE id = ?"
   ).run(method, payerName.trim(), paidAt, row.id);
 
-  res.json(formatOrder(db.prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
+  res.json(formatOrder(await prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
 });
 
 // UPDATE the signed-in user's profile (name, contact, picture, addresses, favorites)
-app.put("/api/profile/:id", requireAuth, (req, res) => {
+app.put("/api/profile/:id", requireAuth, async (req, res) => {
   if (req.user.role !== "client" && req.params.id !== String(req.user.id)) {
     return res.status(403).json({ error: "You can only update your own profile." });
   }
 
-  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  const row = await prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!row) {
     return res.status(404).json({ error: "Profile not found." });
   }
@@ -697,7 +747,7 @@ app.put("/api/profile/:id", requireAuth, (req, res) => {
     return res.status(400).json({ error: "`addresses` must be an array." });
   }
 
-  db.prepare(`
+  await prepare(`
     UPDATE users SET display_name = ?, email = ?, phone = ?, profile_picture = ?, addresses = ?, default_address_id = ?, favorite_menu_ids = ?
     WHERE id = ?
   `).run(
@@ -711,15 +761,27 @@ app.put("/api/profile/:id", requireAuth, (req, res) => {
     row.id
   );
 
-  res.json(formatProfile(db.prepare("SELECT * FROM users WHERE id = ?").get(row.id)));
+  res.json(formatProfile(await prepare("SELECT * FROM users WHERE id = ?").get(row.id)));
 });
 
 // ---------- Start server ----------
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   res.json({ message: "Welcome to the Kuro Neko Food Ordering API" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+let apiServer;
+dbReady.then(() => {
+  apiServer = app.listen(PORT, (error) => {
+    if (error) {
+      console.error(`Could not start the API on port ${PORT}: ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}).catch((error) => {
+  console.error("Turso initialization failed. Check the database URL, token, and schema access.");
+  console.error(error.message);
+  process.exit(1);
 });

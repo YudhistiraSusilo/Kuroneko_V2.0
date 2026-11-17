@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { LanguageSelect, useLanguage } from '../components/LanguageContext.jsx';
+import { api } from '../utils/api.js';
 import kuroNekoLogo from '../assets/kuroneko-logo.png';
 
-export default function LoginPage({ users, onLogin, onSignUp }) {
+export default function LoginPage({ onLogin }) {
   const pageRef = useRef(null);
   const { t } = useLanguage();
   const [mode, setMode] = useState('signin');
@@ -76,7 +77,7 @@ export default function LoginPage({ users, onLogin, onSignUp }) {
     setError('');
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setError('');
 
@@ -94,32 +95,24 @@ export default function LoginPage({ users, onLogin, onSignUp }) {
         setError('Choose a password with at least 6 characters.');
         return;
       }
-      if (users.some((account) => account.username.toLowerCase() === cleanUsername)) {
-        setError('That username is already taken. Please choose another.');
-        return;
-      }
     }
 
     setLoading(true);
-    window.setTimeout(() => {
-      setLoading(false);
-      if (isSignUp) {
-        onSignUp({
-          id: `client-${Date.now()}`,
+    try {
+      const result = isSignUp
+        ? await api.post('/api/auth/register', {
           displayName: displayName.trim(),
           username: cleanUsername,
           password,
-          role: 'client',
-        });
-        return;
-      }
-
-      const matchedUser = users.find(
-        (account) => account.username.toLowerCase() === cleanUsername && account.password === password,
-      );
-      if (matchedUser) onLogin(matchedUser);
-      else setError('That username and password do not match. Please try again.');
-    }, 350);
+        })
+        : await api.post('/api/auth/login', { username: cleanUsername, password });
+      if (!result?.token || !result?.user) throw new Error('The server returned an incomplete sign-in response.');
+      onLogin(result);
+    } catch (requestError) {
+      setError(requestError.message || 'Sign in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return <main className="login-page lantern-target" ref={pageRef}>

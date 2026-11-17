@@ -5,8 +5,7 @@
 #   deploy job -> publishes the uploaded artifact to GitHub Pages
 #
 # You set this up ONCE in the repo:
-#   Settings -> Pages -> "Build and deployment" source = "Deploy from a branch"
-#   branch = gh-pages (root). After the first successful run, Pages serves the site.
+#   Settings -> Pages -> "Build and deployment" source = "GitHub Actions".
 #
 # The Vite base is hardcoded to /Kuroneko_V2.0/ in vite.config.js, which matches
 # this repo's Pages URL (https://YudhistiraSusilo.github.io/Kuroneko_V2.0/).
@@ -50,6 +49,8 @@ jobs:
         run: npm ci
 
       - name: Build with Vite
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: npm run build
 
       - name: Setup Pages

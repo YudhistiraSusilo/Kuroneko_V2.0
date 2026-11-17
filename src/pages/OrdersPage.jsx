@@ -3,7 +3,7 @@ import OrderCard from '../components/OrderCard.jsx';
 import { useLanguage } from '../components/LanguageContext.jsx';
 import { filterOrders } from '../utils/orderHelpers.js';
 
-export default function OrdersPage({ user, orders, onUpdateOrderStatus, onCancelOrder }) {
+export default function OrdersPage({ user, orders, ordersLoading = false, ordersError = '', onUpdateOrderStatus, onCancelOrder }) {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,10 +50,10 @@ export default function OrdersPage({ user, orders, onUpdateOrderStatus, onCancel
       <button className="button button-quiet" type="button" onClick={() => { setStatusFilter('All'); setFulfillmentFilter('All'); setFromDate(''); setToDate(''); setCurrentPage(1); }}>{t('Clear filters')}</button>
     </div>
     <div className="section-heading"><h2>{t(isAdmin ? 'Order history' : 'All your orders')}</h2><span className="muted small-text">{filteredOrders.length} {t('orders')}</span></div>
-    {loading && <p className="message">{t('Loading order history…')}</p>}
-    {!loading && error && <p className="message message-error" role="alert">{t(error)}</p>}
-    {!loading && !error && filteredOrders.length === 0 && <div className="empty-state"><h3>{t(isAdmin ? 'No orders found' : 'No orders yet')}</h3><p className="muted">{t(isAdmin ? 'Change or clear your filters to see more orders.' : 'Your orders will appear here after you place one.')}</p></div>}
-    {!loading && !error && filteredOrders.length > 0 && <>
+    {(loading || ordersLoading) && <p className="message">{t('Loading order history…')}</p>}
+    {!loading && !ordersLoading && (error || ordersError) && <p className="message message-error" role="alert">{t(error || ordersError)}</p>}
+    {!loading && !ordersLoading && !error && !ordersError && filteredOrders.length === 0 && <div className="empty-state"><h3>{t(isAdmin ? 'No orders found' : 'No orders yet')}</h3><p className="muted">{t(isAdmin ? 'Change or clear your filters to see more orders.' : 'Your orders will appear here after you place one.')}</p></div>}
+    {!loading && !ordersLoading && !error && !ordersError && filteredOrders.length > 0 && <>
       <div className="orders-grid order-list-vertical">{pageOrders.map((order) => <OrderCard key={order.id} order={order} isAdmin={isAdmin} onUpdateOrderStatus={onUpdateOrderStatus} onCancelOrder={onCancelOrder} onResumePayment />)}</div>
       {totalPages > 1 && <nav className="menu-pagination" aria-label={t('Order pagination')}>
         <button className="button button-secondary" type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={displayedPage === 1}>{t('Previous')}</button>

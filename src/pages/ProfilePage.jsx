@@ -11,7 +11,7 @@ import { useLanguage } from '../components/LanguageContext.jsx';
 
 const emptyAddress = { label: '', recipient: '', phone: '', address: '' };
 
-export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOrder, menu = [], onToggleFavorite, onAddToCart }) {
+export default function ProfilePage({ user, onSave, onLogout, orders, ordersError = '', onCancelOrder, menu = [], onToggleFavorite, onAddToCart }) {
   const { t, language } = useLanguage();
   const isClient = user.role === 'client';
   const [fullName, setFullName] = useState(user.displayName || '');
@@ -147,7 +147,7 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
     reader.readAsDataURL(file);
   }
 
-  function savePersonalInfo(event) {
+  async function savePersonalInfo(event) {
     event.preventDefault();
     setPersonalError('');
     setPersonalSuccess('');
@@ -164,12 +164,15 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
       return;
     }
     setSavingPersonalInfo(true);
-    window.setTimeout(() => {
-      onSave({ displayName: fullName.trim(), email: email.trim(), phone: phone.trim(), profilePicture });
-      setSavingPersonalInfo(false);
+    try {
+      await onSave({ displayName: fullName.trim(), email: email.trim(), phone: phone.trim(), profilePicture });
       setEditingPersonalInfo(false);
       setPersonalSuccess('Personal information saved.');
-    }, 300);
+    } catch (error) {
+      setPersonalError(error.message || 'Personal information could not be saved. Please try again.');
+    } finally {
+      setSavingPersonalInfo(false);
+    }
   }
 
   function discardPersonalChanges() {
@@ -199,9 +202,15 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
     setPendingFavoriteRemoval(item);
   }
 
-  function confirmFavoriteRemoval() {
-    if (pendingFavoriteRemoval) onToggleFavorite(pendingFavoriteRemoval.id);
-    setPendingFavoriteRemoval(null);
+  async function confirmFavoriteRemoval() {
+    if (!pendingFavoriteRemoval) return;
+    try {
+      await onToggleFavorite(pendingFavoriteRemoval.id);
+      setPendingFavoriteRemoval(null);
+    } catch (error) {
+      setPageError(error.message || 'Favorite could not be updated. Please try again.');
+      setPendingFavoriteRemoval(null);
+    }
   }
 
   function updateAddressField(event) {
@@ -222,7 +231,7 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
     setAddressFormOpen(false);
   }
 
-  function saveAddress(event) {
+  async function saveAddress(event) {
     event.preventDefault();
     setAddressError('');
     if (addressDraft.label.trim().length < 2 || addressDraft.recipient.trim().length < 2 || addressDraft.phone.trim().length < 7 || addressDraft.address.trim().length < 8) {
@@ -233,29 +242,41 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
     const nextAddresses = editingAddressId
       ? addresses.map((item) => item.id === editingAddressId ? savedAddress : item)
       : [...addresses, savedAddress];
-    setAddresses(nextAddresses);
-    if (!editingAddressId) setAddressPage(Math.ceil(nextAddresses.length / addressPageSize));
     const nextDefaultAddressId = defaultAddressId || savedAddress.id;
-    setDefaultAddressId(nextDefaultAddressId);
-    onSave({ addresses: nextAddresses, defaultAddressId: nextDefaultAddressId });
-    setAddressSuccess(editingAddressId ? 'Address updated.' : 'Address saved.');
-    cancelAddressEdit();
+    try {
+      await onSave({ addresses: nextAddresses, defaultAddressId: nextDefaultAddressId });
+      setAddresses(nextAddresses);
+      if (!editingAddressId) setAddressPage(Math.ceil(nextAddresses.length / addressPageSize));
+      setDefaultAddressId(nextDefaultAddressId);
+      setAddressSuccess(editingAddressId ? 'Address updated.' : 'Address saved.');
+      cancelAddressEdit();
+    } catch (error) {
+      setAddressError(error.message || 'Address could not be saved. Please try again.');
+    }
   }
 
-  function removeAddress(addressId) {
+  async function removeAddress(addressId) {
     const nextAddresses = addresses.filter((item) => item.id !== addressId);
-    setAddresses(nextAddresses);
-    setAddressPage(Math.min(currentAddressPage, Math.max(1, Math.ceil(nextAddresses.length / addressPageSize))));
     const nextDefaultAddressId = mainAddressId === addressId ? nextAddresses[0]?.id || '' : mainAddressId;
-    setDefaultAddressId(nextDefaultAddressId);
-    onSave({ addresses: nextAddresses, defaultAddressId: nextDefaultAddressId });
-    setAddressSuccess('Address removed.');
+    try {
+      await onSave({ addresses: nextAddresses, defaultAddressId: nextDefaultAddressId });
+      setAddresses(nextAddresses);
+      setAddressPage(Math.min(currentAddressPage, Math.max(1, Math.ceil(nextAddresses.length / addressPageSize))));
+      setDefaultAddressId(nextDefaultAddressId);
+      setAddressSuccess('Address removed.');
+    } catch (error) {
+      setAddressError(error.message || 'Address could not be removed. Please try again.');
+    }
   }
 
-  function setMainAddress(addressId) {
-    setDefaultAddressId(addressId);
-    onSave({ defaultAddressId: addressId });
-    setAddressSuccess('Main address updated.');
+  async function setMainAddress(addressId) {
+    try {
+      await onSave({ defaultAddressId: addressId });
+      setDefaultAddressId(addressId);
+      setAddressSuccess('Main address updated.');
+    } catch (error) {
+      setAddressError(error.message || 'Main address could not be updated. Please try again.');
+    }
   }
 
   const memberSince = user.createdAt
@@ -304,7 +325,7 @@ export default function ProfilePage({ user, onSave, onLogout, orders, onCancelOr
           onSave={saveAddress} onCancel={cancelAddressEdit}
           onAdd={() => { cancelAddressEdit(); setAddressFormOpen(true); }} success={addressSuccess}
         />}
-        {isClient && <RecentOrderSection t={t} loading={loading} error={pageError} orders={accountOrders} onCancelOrder={onCancelOrder} />}
+        {isClient && <RecentOrderSection t={t} loading={loading} error={pageError || ordersError} orders={accountOrders} onCancelOrder={onCancelOrder} />}
         {isClient && <FavoriteMenuSection
           t={t} loading={loading} error={pageError} items={favoriteItems} visibleItems={visibleFavoriteItems}
           pageSize={favoritePageSize} currentPage={currentFavoritePage} pageCount={favoritePageCount}

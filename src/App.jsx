@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { startingOrders } from './data/orders.js';
-import { users as startingUsers } from './data/users.js';
-import { loadSavedCarts, loadSavedMenu, loadSavedUser, loadSavedValue, saveAppData } from './utils/storage.js';
+import { menuItems as menuPictureCatalog } from './data/menuItems.js';
+import { loadCarts, saveCarts } from './utils/storage.js';
+import { api, clearAuthToken, setAuthToken } from './utils/api.js';
 import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
@@ -16,6 +16,13 @@ import ScrollMotion from './components/ScrollMotion.jsx';
 import { LanguageProvider } from './components/LanguageContext.jsx';
 import { getPaymentTimeRemaining } from './utils/orderHelpers.js';
 
+const menuPicturesByName = new Map(menuPictureCatalog.map(({ name, picture }) => [name.toLowerCase(), picture]));
+const withMenuPicture = (dish) => ({
+  ...dish,
+  picture: dish.picture || menuPicturesByName.get(dish.name.toLowerCase()) || '',
+});
+const normalizeOrder = (order) => ({ ...order, id: String(order.id) });
+
 function ProtectedLayout({ user, cart, onLogout, storageWarning, notification, children }) {
   if (!user) return <Navigate to="/login" replace />;
   return <>
@@ -28,16 +35,67 @@ function ProtectedLayout({ user, cart, onLogout, storageWarning, notification, c
 }
 
 export default function App() {
-  const [users, setUsers] = useState(() => loadSavedValue('kuro-neko-users', startingUsers));
-  const [user, setUser] = useState(() => loadSavedUser(users));
-  const [orders, setOrders] = useState(() => loadSavedValue('kuro-neko-orders', startingOrders));
-  const [menu, setMenu] = useState(loadSavedMenu);
-  const [carts, setCarts] = useState(loadSavedCarts);
+  const [user, setUser] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+  const [menu, setMenu] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState('');
+  const [carts, setCarts] = useState(loadCarts);
   const cart = user?.role === 'client' ? carts[user.id] || [] : [];
   const [storageWarning, setStorageWarning] = useState('');
   const [notification, setNotification] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    api.get('/api/menu')
+      .then((items) => {
+        if (!active) return;
+        const nextMenu = items.map(withMenuPicture);
+        const apiIdByLegacyId = new Map(menuPictureCatalog.map((dish) => [
+          dish.id,
+          nextMenu.find((item) => item.name.toLowerCase() === dish.name.toLowerCase())?.id,
+        ]));
+        setMenu(nextMenu);
+        setCarts((current) => Object.fromEntries(Object.entries(current).map(([accountId, accountCart]) => [
+          accountId,
+          accountCart.map((cartItem) => ({
+            ...cartItem,
+            menuItemId: apiIdByLegacyId.get(cartItem.menuItemId) ?? cartItem.menuItemId,
+          })),
+        ])));
+      })
+      .catch((error) => {
+        if (active) setMenuError(error.message || 'The menu could not be loaded. Please try again.');
+      })
+      .finally(() => {
+        if (active) setMenuLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setOrders([]);
+      setOrdersError('');
+      setOrdersLoading(false);
+      return undefined;
+    }
+    let active = true;
+    setOrders([]);
+    setOrdersError('');
+    setOrdersLoading(true);
+    api.get('/api/orders')
+      .then((items) => { if (active) setOrders(items.map(normalizeOrder)); })
+      .catch((error) => {
+        if (active) setOrdersError(error.message || 'Orders could not be loaded. Please try again.');
+      })
+      .finally(() => { if (active) setOrdersLoading(false); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (['/orders', '/profile', '/menu'].includes(location.pathname)) {
@@ -74,19 +132,19 @@ export default function App() {
   }, []);
 
   // Keep the signed-in account in sync when its profile is edited.
-  function handleProfileUpdate(changes) {
-    const updatedUser = { ...user, ...changes };
+  async function handleProfileUpdate(changes) {
+    const updatedUser = await api.put(`/api/profile/${encodeURIComponent(user.id)}`, changes);
     setUser(updatedUser);
-    setUsers((current) => current.map((account) => account.id === user.id ? updatedUser : account));
+    return updatedUser;
   }
 
-  function toggleFavorite(menuItemId) {
+  async function toggleFavorite(menuItemId) {
     if (user?.role !== 'client') return;
     const favorites = user.favoriteMenuIds || [];
     const favoriteMenuIds = favorites.includes(menuItemId)
       ? favorites.filter((id) => id !== menuItemId)
       : [...favorites, menuItemId];
-    handleProfileUpdate({ favoriteMenuIds });
+    await handleProfileUpdate({ favoriteMenuIds });
   }
 
   // Remove unavailable dishes from every account's saved cart.
@@ -144,25 +202,28 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [notification]);
 
-  // Keep the demo data in this browser so it survives closing and reopening the site.
+  // Preserve the cart locally because the API has no cart endpoint.
   useEffect(() => {
-    const failedSaves = saveAppData({ users, orders, menu, carts, user });
-
-    setStorageWarning(failedSaves.length
+    const saved = saveCarts(carts);
+    setStorageWarning(!saved
       ? 'Some changes could not be saved in this browser. Free browser storage space, then try again.'
       : '');
-  }, [users, orders, menu, carts, user]);
+  }, [carts]);
 
-  function handleLogin(foundUser) {
-    setUser(users.find((account) => account.id === foundUser.id) || foundUser);
-    navigate('/dashboard');
-  }
-  function handleSignUp(newUser) {
-    setUsers((current) => [...current, newUser]);
-    setUser(newUser);
+  function handleLogin({ token, user: authenticatedUser }) {
+    setAuthToken(token);
+    setOrdersLoading(true);
+    setOrdersError('');
+    if (authenticatedUser.role === 'client') {
+      setCarts((current) => current[String(authenticatedUser.id)]
+        ? current
+        : { ...current, [authenticatedUser.id]: current['client-1'] || [] });
+    }
+    setUser(authenticatedUser);
     navigate('/dashboard');
   }
   function handleLogout() {
+    clearAuthToken();
     setUser(null);
     setNotification('');
     navigate('/login');
@@ -190,95 +251,58 @@ export default function App() {
     if (quantity < 1) updateCart((current) => current.filter((item) => item.menuItemId !== menuItemId));
     else updateCart((current) => current.map((item) => item.menuItemId === menuItemId ? { ...item, quantity } : item));
   }
-  function saveMenuItem(menuItem) {
-    setMenu((current) => current.some((item) => item.id === menuItem.id)
-      ? current.map((item) => item.id === menuItem.id ? menuItem : item)
-      : [...current, menuItem]);
+  async function saveMenuItem(menuItem) {
+    const existing = menu.some((item) => item.id === menuItem.id);
+    const { id, ...payload } = menuItem;
+    const savedDish = existing
+      ? await api.put(`/api/menu/${encodeURIComponent(id)}`, payload)
+      : await api.post('/api/menu', payload);
+    const updatedDish = withMenuPicture(savedDish);
+    setMenuError('');
+    setMenu((current) => existing
+      ? current.map((item) => item.id === id ? updatedDish : item)
+      : [...current, updatedDish]);
+    return updatedDish;
   }
-  function removeMenuItem(menuItemId) {
+  async function removeMenuItem(menuItemId) {
+    await api.delete(`/api/menu/${encodeURIComponent(menuItemId)}`);
+    setMenuError('');
     setMenu((current) => current.filter((item) => item.id !== menuItemId));
   }
-  function addOrder(newOrder) {
+  async function addOrder(newOrder) {
     if (!user || user.role !== 'client') throw new Error('Only clients can place orders.');
-    const invalidItems = !Array.isArray(newOrder?.items) || newOrder.items.length === 0 || newOrder.items.some((item) =>
-      !item.name || !Number.isInteger(item.quantity) || item.quantity < 1 || !Number.isFinite(item.price) || item.price <= 0,
-    );
-    if (!newOrder?.id || invalidItems || !Number.isFinite(newOrder.total) || newOrder.total <= 0) {
-      throw new Error('The order details are incomplete. Please review your cart.');
-    }
-    setOrders((current) => [newOrder, ...current]);
+    const savedOrder = normalizeOrder(await api.post('/api/orders', {
+      items: newOrder.items,
+      total: newOrder.total,
+      serviceType: newOrder.serviceType,
+      address: newOrder.address,
+      notes: newOrder.notes,
+    }));
+    setOrdersError('');
+    setOrders((current) => [savedOrder, ...current]);
     updateCart([]);
-    return newOrder;
+    return savedOrder;
   }
 
-  function cancelOrder(orderId) {
-    if (!user || user.role !== 'client') return 'Only clients can cancel an order.';
-    const order = orders.find((item) => item.id === orderId);
-    if (!order) return 'This order could not be found. Refresh the page and try again.';
-    if (order.clientId !== user.id) return 'You can only cancel orders placed by your account.';
-    if (order.status !== 'Pending') return 'Only pending orders can be cancelled.';
-    if (order.paymentStatus === 'Paid') return 'Paid orders cannot be cancelled here. Please contact the restaurant about a refund.';
-
-    setOrders((current) => current.map((item) => item.id === orderId ? {
-      ...item,
-      status: 'Cancelled',
-      statusHistory: [...(item.statusHistory || [{ status: item.status, changedAt: item.createdAt }]), {
-        status: 'Cancelled', changedAt: new Date().toISOString(), changedBy: user.displayName,
-      }],
-    } : item));
+  async function cancelOrder(orderId) {
+    const updatedOrder = normalizeOrder(await api.put(`/api/orders/${encodeURIComponent(orderId)}/cancel`));
+    setOrdersError('');
+    setOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
     setNotification(`Order ${orderId} was cancelled.`);
-    return '';
   }
 
-  function updateOrderStatus(orderId, newStatus) {
-    if (!user || user.role !== 'administrator') return 'Only administrators can update order status.';
-    const order = orders.find((item) => item.id === orderId);
-    if (!order) return 'This order could not be found. Refresh the page and try again.';
-    const validStatuses = ['Pending', 'Preparing', 'Ready', 'Done'];
-    if (!validStatuses.includes(newStatus)) return 'Choose a valid order status.';
-    if (order.status === 'Cancelled') return 'Cancelled orders cannot be changed.';
-    if (order.paymentStatus === 'Unpaid') return 'This order must be paid before its kitchen status can change.';
-
-    setOrders((current) => current.map((item) => item.id === orderId ? {
-      ...item,
-      status: newStatus,
-      statusHistory: [...(item.statusHistory || [{ status: item.status, changedAt: item.createdAt }]), {
-        status: newStatus, changedAt: new Date().toISOString(), changedBy: user.displayName,
-      }],
-    } : item));
+  async function updateOrderStatus(orderId, newStatus) {
+    const updatedOrder = normalizeOrder(await api.put(`/api/orders/${encodeURIComponent(orderId)}/status`, { status: newStatus }));
+    setOrdersError('');
+    setOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
     setNotification(`Order ${orderId} status updated to ${newStatus}.`);
-    return '';
   }
 
-  function savePaymentDraft(orderId, paymentDraft) {
-    if (!user || user.role !== 'client') return 'Only clients can update payment details.';
-    const order = orders.find((item) => item.id === orderId);
-    if (!order || order.clientId !== user.id) return 'This order could not be found in your account.';
-    if (order.paymentStatus === 'Paid') return 'This order has already been paid.';
-    if (order.status === 'Cancelled') return 'Cancelled orders cannot be paid.';
-    if (getPaymentTimeRemaining(order) === 0) return 'The 15-minute payment window has expired. This order is being cancelled.';
-    if (!['Bank transfer (demo)', 'E-wallet (demo)'].includes(paymentDraft.method)) return 'Choose a valid payment method.';
-    if (typeof paymentDraft.payerName !== 'string' || paymentDraft.payerName.length > 60) return 'Enter a valid payer name.';
-
-    setOrders((current) => current.map((item) => item.id === orderId ? { ...item, paymentDraft } : item));
-    return '';
-  }
-
-  function completePayment(orderId, paymentDetails) {
-    const saveError = savePaymentDraft(orderId, paymentDetails);
-    if (saveError) return saveError;
-    if (paymentDetails.payerName.trim().length < 2) return 'Enter a payer name with at least 2 characters.';
-
-    setOrders((current) => current.map((item) => item.id === orderId ? {
-      ...item,
-      paymentStatus: 'Paid',
-      paymentMethod: paymentDetails.method,
-      payerName: paymentDetails.payerName.trim(),
-      paidAt: new Date().toISOString(),
-      paymentDraft: null,
-    } : item));
+  async function completePayment(orderId, paymentDetails) {
+    const updatedOrder = normalizeOrder(await api.put(`/api/orders/${encodeURIComponent(orderId)}/payment`, paymentDetails));
+    setOrdersError('');
+    setOrders((current) => current.map((item) => item.id === updatedOrder.id ? updatedOrder : item));
     setNotification(`Payment for order ${orderId} is complete.`);
-    return '';
   }
 
   return (
@@ -289,13 +313,15 @@ export default function App() {
         path="/login"
         element={user
           ? <Navigate to="/dashboard" replace />
-          : <LoginPage users={users} onLogin={handleLogin} onSignUp={handleSignUp} />}
+          : <LoginPage onLogin={handleLogin} />}
       />
       <Route path="/dashboard" element={
         <ProtectedLayout user={user} cart={cart} onLogout={handleLogout} storageWarning={storageWarning} notification={notification}>
           <DashboardPage
             user={user}
             orders={orders}
+            ordersLoading={ordersLoading}
+            ordersError={ordersError}
             menu={menu}
             onAddToCart={addToCart}
             onUpdateOrderStatus={updateOrderStatus}
@@ -305,7 +331,7 @@ export default function App() {
       } />
       <Route path="/orders" element={
         <ProtectedLayout user={user} cart={cart} onLogout={handleLogout} storageWarning={storageWarning} notification={notification}>
-          <OrdersPage user={user} orders={orders} onUpdateOrderStatus={updateOrderStatus} onCancelOrder={cancelOrder} />
+        <OrdersPage user={user} orders={orders} ordersLoading={ordersLoading} ordersError={ordersError} onUpdateOrderStatus={updateOrderStatus} onCancelOrder={cancelOrder} />
         </ProtectedLayout>
       } />
       <Route path="/menu" element={
@@ -313,6 +339,8 @@ export default function App() {
           <MenuPage
             user={user}
             menu={menu}
+            menuLoading={menuLoading}
+            menuError={menuError}
             onAddToCart={addToCart}
             onToggleFavorite={toggleFavorite}
             onSaveMenuItem={saveMenuItem}
@@ -325,6 +353,8 @@ export default function App() {
           <CartPage
             user={user}
             menu={menu}
+            menuLoading={menuLoading}
+            menuError={menuError}
             cart={cart}
             onChangeQuantity={setCartQuantity}
             onPlaceOrder={addOrder}
@@ -338,6 +368,7 @@ export default function App() {
             onSave={handleProfileUpdate}
             onLogout={handleLogout}
             orders={orders}
+            ordersError={ordersError}
             onCancelOrder={cancelOrder}
             menu={menu}
             onToggleFavorite={toggleFavorite}
@@ -347,7 +378,7 @@ export default function App() {
       } />
       <Route path="/order-confirmation" element={
         <ProtectedLayout user={user} cart={cart} onLogout={handleLogout} storageWarning={storageWarning} notification={notification}>
-          <OrderConfirmationPage user={user} orders={orders} />
+          <OrderConfirmationPage user={user} orders={orders} ordersLoading={ordersLoading} ordersError={ordersError} />
         </ProtectedLayout>
       } />
       <Route path="/payment" element={
@@ -355,8 +386,9 @@ export default function App() {
           <PaymentPage
             user={user}
             orders={orders}
-            onSavePaymentDraft={savePaymentDraft}
             onCompletePayment={completePayment}
+            ordersLoading={ordersLoading}
+            ordersError={ordersError}
           />
         </ProtectedLayout>
       } />

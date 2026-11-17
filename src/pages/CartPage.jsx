@@ -5,7 +5,7 @@ import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import ImagePlaceholder from '../components/ImagePlaceholder.jsx';
 import { useLanguage } from '../components/LanguageContext.jsx';
 
-export default function CartPage({ user, menu, cart, onChangeQuantity, onPlaceOrder }) {
+export default function CartPage({ user, menu, menuLoading = false, menuError = '', cart, onChangeQuantity, onPlaceOrder }) {
   const { t } = useLanguage();
   const initialSavedAddresses = Array.isArray(user.addresses) ? user.addresses : [];
   const initialMainAddress = initialSavedAddresses.find((item) => item.id === user.defaultAddressId)
@@ -61,7 +61,7 @@ export default function CartPage({ user, menu, cart, onChangeQuantity, onPlaceOr
     input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [notes]);
 
-  function submitOrder(event) {
+  async function submitOrder(event) {
     event.preventDefault();
     setError('');
     setAddressNotice('');
@@ -98,7 +98,7 @@ export default function CartPage({ user, menu, cart, onChangeQuantity, onPlaceOr
     };
     setPlacingOrder(true);
     try {
-      const savedOrder = onPlaceOrder(order);
+      const savedOrder = await onPlaceOrder(order);
       if (!savedOrder?.id) throw new Error('The order could not be saved. Your cart has been kept; please try again.');
       navigate(`/payment?orderId=${encodeURIComponent(savedOrder.id)}`);
     } catch (saveError) {
@@ -130,10 +130,10 @@ export default function CartPage({ user, menu, cart, onChangeQuantity, onPlaceOr
       onConfirm={confirmCartRemoval}
       onCancel={() => setPendingRemoval(null)}
     />}
-    {loading && <p className="message">{t('Loading your cart…')}</p>}
-    {!loading && error && <p className="message message-error" role="alert">{error}</p>}
-    {!loading && !error && cartDishes.length === 0 && <div className="empty-state cart-empty-state"><span className="empty-icon">お</span><h3>{t('Your cart is empty')}</h3><p className="muted">{t('Your cart is resting for now. Unavailable dishes have returned to the kitchen.')}</p><Link className="button button-primary" to="/menu">{t('Browse menu')}</Link></div>}
-    {!loading && !error && cartDishes.length > 0 && <form className="cart-layout" onSubmit={submitOrder}>
+    {(loading || menuLoading) && <p className="message">{t('Loading your cart…')}</p>}
+    {!loading && !menuLoading && (error || menuError) && <p className="message message-error" role="alert">{t(error || menuError)}</p>}
+    {!loading && !menuLoading && !error && !menuError && cartDishes.length === 0 && <div className="empty-state cart-empty-state"><span className="empty-icon">お</span><h3>{t('Your cart is empty')}</h3><p className="muted">{t('Your cart is resting for now. Unavailable dishes have returned to the kitchen.')}</p><Link className="button button-primary" to="/menu">{t('Browse menu')}</Link></div>}
+    {!loading && !menuLoading && !error && !menuError && cartDishes.length > 0 && <form className="cart-layout" onSubmit={submitOrder}>
       <div className="cart-items">
         {cartDishes.map(({ dish, quantity }) => <article className="cart-row" key={dish.id}>
           <ImagePlaceholder className="cart-picture" label={`${dish.name} image`} src={dish.picture} />

@@ -18,12 +18,12 @@ function MenuPicture({ dish }) {
   return <ImagePlaceholder className="dish-picture" label={`${dish.name} image`} src={dish.picture} />;
 }
 
-export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, onSaveMenuItem, onRemoveMenuItem }) {
+export default function MenuPage({ user, menu, menuLoading = false, menuError = '', onAddToCart, onToggleFavorite, onSaveMenuItem, onRemoveMenuItem }) {
   const { t, language } = useLanguage();
   const isAdmin = user.role === 'administrator';
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [success, setSuccess] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,15 +39,6 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
   const pictureInput = useRef(null);
 
   useBodyScrollLock(modalOpen);
-
-  useEffect(() => {
-    setError('');
-    const timer = window.setTimeout(() => {
-      if (!Array.isArray(menu)) setError('The menu could not be loaded. Please try again.');
-      setLoading(false);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [menu]);
 
   useEffect(() => {
     if (!success) return undefined;
@@ -148,7 +139,7 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
     setModalOpen(true);
   }
 
-  function saveDish(event) {
+  async function saveDish(event) {
     event.preventDefault();
     setFormError('');
     setSuccess('');
@@ -179,26 +170,48 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
       price,
     };
     const wasEditing = Boolean(editingId);
-    onSaveMenuItem(dish);
-    setSuccess(wasEditing ? 'Menu item updated.' : 'Menu item added.');
-    resetForm();
+    setSaving(true);
+    try {
+      await onSaveMenuItem(dish);
+      setSuccess(wasEditing ? 'Menu item updated.' : 'Menu item added.');
+      resetForm();
+    } catch (requestError) {
+      setFormError(requestError.message || 'The menu item could not be saved. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function deleteDish(dish) {
     setPendingRemoval(dish);
   }
 
-  function confirmDishRemoval() {
-    onRemoveMenuItem(pendingRemoval.id);
-    if (editingId === pendingRemoval.id) resetForm();
-    setSuccess(`${pendingRemoval.name} removed. It was also removed from active carts.`);
-    setPendingRemoval(null);
+  async function confirmDishRemoval() {
+    setActionError('');
+    try {
+      await onRemoveMenuItem(pendingRemoval.id);
+      if (editingId === pendingRemoval.id) resetForm();
+      setSuccess(`${pendingRemoval.name} removed. It was also removed from active carts.`);
+      setPendingRemoval(null);
+    } catch (requestError) {
+      setActionError(requestError.message || 'The menu item could not be removed. Please try again.');
+      setPendingRemoval(null);
+    }
   }
 
   function addDishToCart(dish) {
     onAddToCart(dish.id);
     setCartNotification(`${dish.name} added to your cart.`);
     window.setTimeout(() => setCartNotification(''), 2500);
+  }
+
+  async function toggleDishFavorite(dishId) {
+    setActionError('');
+    try {
+      await onToggleFavorite(dishId);
+    } catch (requestError) {
+      setActionError(requestError.message || 'Favorite could not be updated. Please try again.');
+    }
   }
 
   return <section className="menu-page-layout">
@@ -226,6 +239,7 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
       <button className="add-dish-pill" type="button" onClick={startAdd}><span aria-hidden="true">＋</span> {t('Add a dish')}</button>
     </div>}
     {success && <div key={success} className="cart-toast" role="status" aria-live="polite">✓ {t(success)}</div>}
+    {actionError && <p className="message message-error" role="alert">{t(actionError)}</p>}
     {cartNotification && <div key={cartNotification} className="cart-toast" role="status" aria-live="polite">✓ {t('Dish added to your cart.', { dish: cartNotification.replace(/ added to your cart\.$/, '') })}</div>}
     {detailsDish && <DishDetailsModal dish={detailsDish} onClose={() => setDetailsDish(null)} />}
     {pendingRemoval && <ConfirmationModal
@@ -247,16 +261,16 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
         <div className="wide-field menu-picture-field"><label htmlFor="menu-picture">{t('Picture')}</label><input ref={pictureInput} id="menu-picture" type="file" accept="image/*" onChange={readPicture} />{form.picture && <div className="menu-picture-preview"><ImagePlaceholder className="form-image-preview" label={t('Selected dish picture')} src={form.picture} /><button className="button button-quiet danger-text" type="button" onClick={clearPicture}>{t('Remove selected picture')}</button></div>}</div>
         <label className="availability-check"><input name="available" type="checkbox" checked={form.available} onChange={updateField} /> {t('Available to clients')}</label>
         {formError && <p className="message message-error wide-field" role="alert">{t(formError)}</p>}
-        <div className="modal-actions wide-field"><button className="button button-quiet" type="button" onClick={resetForm}>{t('Cancel')}</button><button className="button button-primary" type="submit">{t(editingId ? 'Save changes' : 'Add dish')}</button></div>
+        <div className="modal-actions wide-field"><button className="button button-quiet" type="button" onClick={resetForm} disabled={saving}>{t('Cancel')}</button><button className="button button-primary" type="submit" disabled={saving}>{t(saving ? 'Please wait…' : editingId ? 'Save changes' : 'Add dish')}</button></div>
         </form>
       </section>
     </div>}
 
-    {loading && <p className="message">{t('Loading menu…')}</p>}
-    {!loading && error && <p className="message message-error" role="alert">{t(error)}</p>}
-    {!loading && !error && menu.length === 0 && <div className="empty-state"><h3>{t('The menu is empty')}</h3><p className="muted">{t(isAdmin ? 'Add a dish using the form above.' : 'Please check back later.')}</p></div>}
-    {!loading && !error && menu.length > 0 && visibleMenu.length === 0 && <div className="empty-state"><h3>{t('No dishes found')}</h3><p className="muted">{t('Try another category or search term.')}</p></div>}
-    {!loading && !error && menu.length > 0 && visibleMenu.length > 0 && <>
+    {menuLoading && <p className="message">{t('Loading menu…')}</p>}
+    {!menuLoading && menuError && <p className="message message-error" role="alert">{t(menuError)}</p>}
+    {!menuLoading && !menuError && menu.length === 0 && <div className="empty-state"><h3>{t('The menu is empty')}</h3><p className="muted">{t(isAdmin ? 'Add a dish using the form above.' : 'Please check back later.')}</p></div>}
+    {!menuLoading && !menuError && menu.length > 0 && visibleMenu.length === 0 && <div className="empty-state"><h3>{t('No dishes found')}</h3><p className="muted">{t('Try another category or search term.')}</p></div>}
+    {!menuLoading && !menuError && menu.length > 0 && visibleMenu.length > 0 && <>
       <div className="menu-results-heading">
         <h2>{t('Our menu')}</h2>
         <span>{visibleMenu.length} {t('menu items')}</span>
@@ -265,7 +279,7 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
       {paginatedMenu.map((dish) => <article className={`dish-card ${dish.available ? '' : 'dish-unavailable'}`} key={dish.id}>
         <div className="menu-card-image-wrap">
           <MenuPicture dish={dish} />
-          {!isAdmin && <button className={`menu-favorite-button ${(user.favoriteMenuIds || []).includes(dish.id) ? 'selected' : ''}`} type="button" aria-label={`${(user.favoriteMenuIds || []).includes(dish.id) ? 'Remove' : 'Add'} ${dish.name} ${ (user.favoriteMenuIds || []).includes(dish.id) ? 'from' : 'to'} favorites`} aria-pressed={(user.favoriteMenuIds || []).includes(dish.id)} onClick={() => onToggleFavorite(dish.id)}>♥</button>}
+          {!isAdmin && <button className={`menu-favorite-button ${(user.favoriteMenuIds || []).includes(dish.id) ? 'selected' : ''}`} type="button" aria-label={`${(user.favoriteMenuIds || []).includes(dish.id) ? 'Remove' : 'Add'} ${dish.name} ${ (user.favoriteMenuIds || []).includes(dish.id) ? 'from' : 'to'} favorites`} aria-pressed={(user.favoriteMenuIds || []).includes(dish.id)} onClick={() => toggleDishFavorite(dish.id)}>♥</button>}
         </div>
         <div className="dish-card-body">
           <div className="dish-card-title"><div><h2>{dish.name}</h2><span className="dish-japanese" lang="ja">{language === 'ja' ? (categoryJapanese[dish.category] || '料理') : `${t(dish.category)} · ${categoryJapanese[dish.category] || '料理'}`}</span></div>{!dish.available && <span className="unavailable-label">{t('Unavailable')}</span>}</div>
@@ -278,7 +292,7 @@ export default function MenuPage({ user, menu, onAddToCart, onToggleFavorite, on
       </article>)}
       </div>
     </>}
-    {!loading && !error && visibleMenu.length > menuPageSize && <nav className="menu-pagination" aria-label={t('Menu pagination')}>
+    {!menuLoading && !menuError && visibleMenu.length > menuPageSize && <nav className="menu-pagination" aria-label={t('Menu pagination')}>
       <button className="button button-secondary" type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={displayedPage === 1}>{t('Previous')}</button>
       <span>{t('Page {current} of {total}', { current: displayedPage, total: totalPages })}</span>
       <button className="button button-secondary" type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={displayedPage === totalPages}>{t('Next')}</button>

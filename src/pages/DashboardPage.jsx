@@ -5,7 +5,7 @@ import ClientHomePage from '../components/dashboard/ClientHomePage.jsx';
 import { filterOrders, getActiveOrders } from '../utils/orderHelpers.js';
 import { useLanguage } from '../components/LanguageContext.jsx';
 
-export default function DashboardPage({ user, orders, menu = [], onAddToCart, onUpdateOrderStatus, onCancelOrder }) {
+export default function DashboardPage({ user, orders, ordersLoading = false, ordersError = '', menu = [], onAddToCart, onUpdateOrderStatus, onCancelOrder }) {
   const { t, language } = useLanguage();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -115,7 +115,7 @@ export default function DashboardPage({ user, orders, menu = [], onAddToCart, on
 
   if (!isAdmin) {
     return <ClientHomePage
-      t={t} language={language} loading={loading} error={error}
+      t={t} language={language} loading={loading || ordersLoading} error={error || ordersError}
       activeOrders={activeOrders} signatureItems={signatureItems}
       onCancelOrder={onCancelOrder} signatureToast={signatureToast}
       onAddSignatureDish={addSignatureDish} footerEmail={footerEmail}
@@ -133,9 +133,9 @@ export default function DashboardPage({ user, orders, menu = [], onAddToCart, on
       <Link className="text-link" to="/orders">{t('View all orders')}</Link>
     </div>
     <div className="order-filters compact-filters"><label>{t('Status')}<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="All">{t('All')}</option><option value="Pending">{t('Pending')}</option><option value="Preparing">{t('Preparing')}</option><option value="Ready">{t('Ready')}</option><option value="Done">{t('Done')}</option><option value="Cancelled">{t('Cancelled')}</option></select></label></div>
-    {loading && <p className="message">{t('Loading orders…')}</p>}
-    {!loading && error && <p className="message message-error" role="alert">{t(error)}</p>}
-    {!loading && !error && visibleOrders.length === 0 && <div className="empty-state"><span className="empty-icon">お</span><h3>{t('No recent orders match')}</h3><p className="muted">{t('Try another status or view the full order history.')}</p></div>}
-    {!loading && !error && visibleOrders.length > 0 && <div className="orders-grid">{visibleOrders.map((order) => <OrderCard key={order.id} order={order} isAdmin onUpdateOrderStatus={onUpdateOrderStatus} />)}</div>}
+    {(loading || ordersLoading) && <p className="message">{t('Loading orders…')}</p>}
+    {!loading && !ordersLoading && (error || ordersError) && <p className="message message-error" role="alert">{t(error || ordersError)}</p>}
+    {!loading && !ordersLoading && !error && !ordersError && visibleOrders.length === 0 && <div className="empty-state"><span className="empty-icon">お</span><h3>{t('No recent orders match')}</h3><p className="muted">{t('Try another status or view the full order history.')}</p></div>}
+    {!loading && !ordersLoading && !error && !ordersError && visibleOrders.length > 0 && <div className="orders-grid">{visibleOrders.map((order) => <OrderCard key={order.id} order={order} isAdmin onUpdateOrderStatus={onUpdateOrderStatus} />)}</div>}
   </section>;
 }

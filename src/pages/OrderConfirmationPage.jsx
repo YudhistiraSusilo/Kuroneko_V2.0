@@ -3,7 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { formatDate, formatRupiah } from '../utils/format.js';
 import { useLanguage } from '../components/LanguageContext.jsx';
 
-export default function OrderConfirmationPage({ user, orders }) {
+export default function OrderConfirmationPage({ user, orders, ordersLoading = false, ordersError = '' }) {
   const { t, language } = useLanguage();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId');
@@ -11,18 +11,19 @@ export default function OrderConfirmationPage({ user, orders }) {
   const [error, setError] = useState('');
   const receiptOrder = useMemo(() => {
     if (!Array.isArray(orders) || !orderId) return null;
-    return orders.find((order) => order.id === orderId && order.clientId === user.id) || null;
+    return orders.find((order) => String(order.id) === orderId && order.clientId === user.id) || null;
   }, [orders, orderId, user.id]);
 
   useEffect(() => {
     setError('');
     const timer = window.setTimeout(() => {
       if (!Array.isArray(orders)) setError('Order information could not be loaded. Please refresh the page.');
-      else if (!orderId || !receiptOrder) setError('This order receipt could not be found. Check your order history.');
+      else if (!ordersLoading && ordersError) setError(ordersError);
+      else if (!ordersLoading && (!orderId || !receiptOrder)) setError('This order receipt could not be found. Check your order history.');
       setLoading(false);
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [orders, orderId, receiptOrder]);
+  }, [orders, ordersLoading, ordersError, orderId, receiptOrder]);
 
   if (user.role !== 'client') return <Navigate to="/dashboard" replace />;
 
@@ -55,11 +56,11 @@ export default function OrderConfirmationPage({ user, orders }) {
       {!receiptOrder && <p className="muted">Keep this receipt to check your order details and status.</p>}
     </div>
 
-    {loading && <p className="message">Preparing your receipt…</p>}
-    {!loading && error && <div className="message message-error" role="alert">
+    {(loading || ordersLoading) && <p className="message">Preparing your receipt…</p>}
+    {!loading && !ordersLoading && error && <div className="message message-error" role="alert">
       <p>{error}</p><Link className="text-link" to="/profile">Open your profile</Link>
     </div>}
-    {!loading && !error && receiptOrder && <article className="receipt-card">
+    {!loading && !ordersLoading && !error && receiptOrder && <article className="receipt-card">
       <div className="receipt-heading">
         <div><p className="eyebrow">Receipt</p><h2>Order {receiptOrder.id}</h2></div>
         <span className={`status status-${receiptOrder.status.toLowerCase()}`}>{receiptOrder.status}</span>
