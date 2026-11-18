@@ -238,7 +238,7 @@ async function initializeDatabase() {
       "Pickup", null, null, "Unpaid", null, null, null, createdAtRecent],
 
       [
-      "KN-1002", null, "Ren Sato",
+      "KN-1002", null, "Ren Sijie",
       JSON.stringify([
       { name: "Chicken Katsu Curry", quantity: 1, price: 72000 },
       { name: "Gyoza (5 pcs)", quantity: 1, price: 32000 }]
