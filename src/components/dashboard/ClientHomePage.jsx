@@ -98,7 +98,7 @@ export default function ClientHomePage({
       <div className="section-heading"><h2 id="active-orders-title">{t('Your active orders')}</h2></div>
       {loading && <p className="message">{t('Loading your orders…')}</p>}
       {!loading && error && <p className="message message-error" role="alert">{t(error)}</p>}
-      {!loading && !error && <div className="orders-grid">{activeOrders.map((order) => <OrderCard key={order.id} order={order} onCancelOrder={onCancelOrder} />)}</div>}
+      {!loading && !error && <div className="orders-grid">{activeOrders.map((order) => <OrderCard key={order.id} order={order} onCancelOrder={onCancelOrder} onResumePayment />)}</div>}
     </section>}
 
     <section className="client-home-section home-banner signature-banner" id="signature">
