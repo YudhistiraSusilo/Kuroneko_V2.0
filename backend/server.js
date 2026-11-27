@@ -13,6 +13,7 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
+const { getMongoStatus, startKeepAlive } = require("./mongo");
 const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "local-development-only-secret";
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
@@ -849,12 +850,20 @@ app.put("/api/profile/:id", requireAuth, async (req, res) => {
 
 // ---------- Start server ----------
 
+// Check the MongoDB Atlas ("Kuroneko") connection. Safe to poll: a ping also
+// wakes a suspended M0 cluster after ~30 seconds of idle time.
+app.get("/api/db/mongo-status", async (req, res) => {
+  res.json(await getMongoStatus());
+});
+
 app.get("/", async (req, res) => {
   res.json({ message: "Welcome to the Kuro Neko Food Ordering API" });
 });
 
 let apiServer;
 dbReady.then(() => {
+  // Keep the Atlas M0 cluster awake while the API is running.
+  startKeepAlive();
   apiServer = app.listen(PORT, (error) => {
     if (error) {
       console.error(`Could not start the API on port ${PORT}: ${error.message}`);
