@@ -4,7 +4,7 @@
 > **Read this top to bottom before touching the code.** It captures what we've done, the current
 > state of the site, and exactly what's left to do next.
 >
-> Last updated: 2026-11-17 (frontend/API integration handoff).
+> Last updated: 2026-11-26 (MongoDB Atlas integration, §3.6).
 > Companion doc: `../project-submission-guide.md` (the course submission requirements).
 
 ---
@@ -41,6 +41,8 @@ Kuroneko_V2.0/
 ├── menu pictures/          # dish + hero PNGs (food photos; referenced by src/data/menuItems.js)
 ├── backend/
 │   ├── server.js           # Express API (port 3000) + auto-migrate + auto-seed
+│   ├── mongo.js            # MongoDB Atlas connection (MONGODB_URI) + keep-alive
+│   ├── check-mongo.js      # Standalone Atlas connectivity check (node check-mongo.js)
 │   ├── kuroneko.db        # Local SQLite source/import (seeded: 2 users, 21 menu items, 2 orders)
 │   └── package.json        # npm start = node server.js
 ├── .github/workflows/deploy.yml   # build + deploy frontend to GitHub Pages
@@ -85,6 +87,7 @@ cd <repo root> && Copy-Item .env.example .env && npm ci && npm run dev
   | `PUT`  | `/api/orders/:id/cancel` | client |
   | `PUT`  | `/api/orders/:id/payment` | client |
   | `PUT`  | `/api/profile/:id` | auth |
+  | `GET`  | `/api/db/mongo-status` | public (Atlas connection check; also wakes a suspended cluster) |
   | `GET`  | `/` | public (health message) |
 
   CORS is enabled, so the `:5173` frontend is allowed to call `:3000`.
@@ -107,6 +110,28 @@ cd <repo root> && Copy-Item .env.example .env && npm ci && npm run dev
 ### 3.5 What was verified this session (evidence)
 - `npm run build` → 0 errors. Backend boots, `GET /api/menu` returns 21 items, login issues a JWT.
 - Frontend login → dashboard renders as the demo client. Menu images load (`naturalWidth > 0`).
+
+### 3.6 MongoDB Atlas integration (Yuris, 2026-11-26)
+- The backend now also connects to a **MongoDB Atlas** cluster (`databasekuroneko`, M0 free tier)
+  as a second data source; Turso/SQLite remains the primary database for all API endpoints.
+- **`backend/mongo.js`** (new): lazy `MongoClient` from `MONGODB_URI` (60 s server-selection
+  timeout so a just-woken suspended cluster still connects), exports `connectMongo()`,
+  `getMongoStatus()`, and `startKeepAlive()` (pings every 25 min — inside Atlas's ~30 min
+  auto-suspend window, so the cluster stays up while the API process is running).
+- **`server.js`**: new endpoint `GET /api/db/mongo-status` (public; reports
+  `{configured, ok, dbName, collections, detail}`) and the keep-alive starts at boot.
+  Everything is additive — no existing endpoint or schema was touched.
+- **`backend/check-mongo.js`** (new): standalone connectivity check, no Turso needed:
+  `cd backend && node check-mongo.js` → exit 0 + `"ok": true` means reachable.
+- `.env`: `MONGODB_URI` + `MONGO_DB_NAME=kuroneko` (mirrored in `.env.example`; without
+  `MONGODB_URI` the API still boots and the endpoint reports `configured: false`).
+- `mongodb` driver v6 added to `backend/package.json` (+ lockfile).
+- **Atlas-side state:** database `kuroneko` seeded with all 21 menu items in `menu_items`
+  (same data as the `server.js` seed). Network Access allows `0.0.0.0/0`.
+- Verified: `check-mongo.js` returns `"ok": true` with 21 documents in `menu_items`.
+- **Open item:** the older Atlas cluster `kuroneko` (host `kuroneko.gzscetk.mongodb.net`)
+  in "Project 0" is now unused and should be deleted there, along with its database user
+  `yurisypps55_db_user` (cleanup is an Atlas-UI action; not verified as done).
 
 ---
 
@@ -166,6 +191,15 @@ their image mappings in `src/data/menuItems.js` (mirror the existing 18 entries)
   Actions workflow) — harmless, but can be removed later.
 - Seeded menu `picture` fields in the **DB** are empty (`''`); the frontend maps existing photos
   by dish name. Admin-uploaded pictures are saved in the DB.
+- **MongoDB Atlas gotchas:** M0 auto-suspends after ~30 min idle — "database offline" is
+  normal, not a fault (data is safe, first connect after suspension takes up to ~1 min).
+  The keep-alive only works *while the API process runs*. If `MONGODB_URI` passwords contain
+  `& ? # + @ / : %`, they must be URL-encoded inside the URI (or take the string straight
+  from Atlas's Drivers copy — never hand-assemble). A duplicate `mongodb+srv:` prefix or a
+  leading space in `.env` produces "Invalid scheme" errors.
+- **npm installs on the Windows drive (`/mnt/d`) from WSL corrupt node_modules** — install
+  new packages on a Linux filesystem and copy the resulting packages/lockfile back (how the
+  `mongodb` driver was added on 2026-11-26).
 
 ---
 

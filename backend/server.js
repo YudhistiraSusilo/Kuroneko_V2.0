@@ -13,6 +13,7 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
+const { getMongoStatus, startKeepAlive } = require("./mongo");
 const PORT = Number(process.env.PORT) || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "local-development-only-secret";
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
@@ -103,6 +104,7 @@ async function initializeDatabase() {
     payment_method TEXT,
     payer_name TEXT,
     paid_at TEXT,
+    payment_attempts TEXT NOT NULL DEFAULT '[]',
     created_at TEXT NOT NULL
   )
 `);
@@ -132,7 +134,8 @@ async function initializeDatabase() {
     const existingColumns = (await prepare("PRAGMA table_info(orders)").all()).map((column) => column.name);
     const newColumns = [
     ["status_history", "TEXT NOT NULL DEFAULT '[]'"],
-    ["notes", "TEXT"]];
+    ["notes", "TEXT"],
+    ["payment_attempts", "TEXT NOT NULL DEFAULT '[]'"]];
 
     for (const [columnName, definition] of newColumns) {
       if (!existingColumns.includes(columnName)) {
@@ -304,6 +307,21 @@ function appendHistory(raw, entry) {
   return JSON.stringify(history);
 }
 
+function parseAttempts(raw) {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function appendAttempt(raw, entry) {
+  const attempts = parseAttempts(raw);
+  attempts.push(entry);
+  return JSON.stringify(attempts);
+}
+
 // Unpaid orders past their 15-minute payment window are cancelled automatically.
 async function autoCancelExpiredOrders() {
   const cutoff = new Date(Date.now() - PAYMENT_WINDOW_MS).toISOString();
@@ -341,6 +359,7 @@ function formatOrder(row) {
     paymentMethod: row.payment_method,
     payerName: row.payer_name,
     paidAt: row.paid_at,
+    paymentAttempts: parseAttempts(row.payment_attempts),
     createdAt: row.created_at
   };
 }
@@ -683,6 +702,26 @@ app.put("/api/orders/:id/cancel", requireAuth, async (req, res) => {
 });
 
 // PAY an order (clients, within the 15-minute payment window)
+// Demo card gateway: 4242 4242 4242 4242 is approved, 4000 0000 0000 0002 is declined.
+// A decline keeps the order Unpaid, records the attempt, and lets the client retry.
+const DEMO_CARD_METHOD = "Credit/Debit card (demo)";
+const DEMO_PAYMENT_METHODS = ["Bank transfer (demo)", "E-wallet (demo)", DEMO_CARD_METHOD];
+const DEMO_DECLINE_CARD = "4000000000000002";
+
+function normalizeCardNumber(raw) {
+  return String(raw || "").replace(/[\s-]/g, "");
+}
+
+// A card expires at the end of its printed month (MM/YY).
+function cardExpiryIsValid(raw, now = new Date()) {
+  const match = String(raw || "").trim().match(/^(\d{2})\/(\d{2})$/);
+  if (!match) return false;
+  const month = Number(match[1]);
+  if (month < 1 || month > 12) return false;
+  const monthAfterExpiry = new Date(2000 + Number(match[2]), month, 1);
+  return monthAfterExpiry > now;
+}
+
 app.put("/api/orders/:id/payment", requireAuth, async (req, res) => {
   if (req.user.role !== "client") {
     return res.status(403).json({ error: "Only clients can update payment details." });
@@ -705,18 +744,63 @@ app.put("/api/orders/:id/payment", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "The 15-minute payment window has expired. This order is being cancelled." });
   }
 
-  const { method, payerName } = req.body;
-  if (!["Bank transfer (demo)", "E-wallet (demo)"].includes(method)) {
+  const { method, payerName, cardNumber, cardExpiry, cardCvv } = req.body;
+  if (!DEMO_PAYMENT_METHODS.includes(method)) {
     return res.status(400).json({ error: "Choose a valid payment method." });
   }
   if (typeof payerName !== "string" || payerName.trim().length < 2 || payerName.trim().length > 60) {
     return res.status(400).json({ error: "Enter a payer name with at least 2 characters." });
   }
 
-  const paidAt = new Date().toISOString();
-  await prepare(
-    "UPDATE orders SET payment_status = 'Paid', payment_method = ?, payer_name = ?, paid_at = ? WHERE id = ?"
-  ).run(method, payerName.trim(), paidAt, row.id);
+  let declinedReason = null;
+  if (method === DEMO_CARD_METHOD) {
+    const digits = normalizeCardNumber(cardNumber);
+    if (!/^\d{16}$/.test(digits)) {
+      return res.status(400).json({ error: "Enter a 16-digit card number." });
+    }
+    if (!cardExpiryIsValid(cardExpiry)) {
+      return res.status(400).json({ error: "Enter a valid future card expiry date (MM/YY)." });
+    }
+    if (!/^\d{3,4}$/.test(String(cardCvv || "").trim())) {
+      return res.status(400).json({ error: "Enter a 3- or 4-digit security code (CVV)." });
+    }
+    if (digits === DEMO_DECLINE_CARD) {
+      declinedReason = "Card declined by the issuing bank (insufficient funds).";
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+
+  if (declinedReason) {
+    await prepare("UPDATE orders SET payment_attempts = ? WHERE id = ?").run(
+      appendAttempt(row.payment_attempts, {
+        method,
+        cardLast4: normalizeCardNumber(cardNumber).slice(-4),
+        approved: false,
+        reason: declinedReason,
+        at: nowIso
+      }),
+      row.id
+    );
+    const after = await prepare("SELECT * FROM orders WHERE id = ?").get(row.id);
+    return res.status(402).json({ error: declinedReason, order: formatOrder(after) });
+  }
+
+  await prepare(`
+    UPDATE orders SET payment_status = 'Paid', payment_method = ?, payer_name = ?, paid_at = ?, payment_attempts = ?
+    WHERE id = ?
+  `).run(
+    method,
+    payerName.trim(),
+    nowIso,
+    appendAttempt(row.payment_attempts, {
+      method,
+      ...(method === DEMO_CARD_METHOD ? { cardLast4: normalizeCardNumber(cardNumber).slice(-4) } : {}),
+      approved: true,
+      at: nowIso
+    }),
+    row.id
+  );
 
   res.json(formatOrder(await prepare("SELECT * FROM orders WHERE id = ?").get(row.id)));
 });
@@ -766,12 +850,20 @@ app.put("/api/profile/:id", requireAuth, async (req, res) => {
 
 // ---------- Start server ----------
 
+// Check the MongoDB Atlas ("Kuroneko") connection. Safe to poll: a ping also
+// wakes a suspended M0 cluster after ~30 seconds of idle time.
+app.get("/api/db/mongo-status", async (req, res) => {
+  res.json(await getMongoStatus());
+});
+
 app.get("/", async (req, res) => {
   res.json({ message: "Welcome to the Kuro Neko Food Ordering API" });
 });
 
 let apiServer;
 dbReady.then(() => {
+  // Keep the Atlas M0 cluster awake while the API is running.
+  startKeepAlive();
   apiServer = app.listen(PORT, (error) => {
     if (error) {
       console.error(`Could not start the API on port ${PORT}: ${error.message}`);

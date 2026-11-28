@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDate, formatRupiah } from '../utils/format.js';
 import { getPaymentTimeRemaining } from '../utils/orderHelpers.js';
 import ConfirmationModal from './ConfirmationModal.jsx';
@@ -7,6 +7,7 @@ import { useLanguage } from './LanguageContext.jsx';
 
 export default function OrderCard({ order, isAdmin = false, onUpdateOrderStatus, onCancelOrder, onResumePayment }) {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [actionError, setActionError] = useState('');
   const [clock, setClock] = useState(Date.now());
@@ -23,6 +24,14 @@ export default function OrderCard({ order, isAdmin = false, onUpdateOrderStatus,
 
   const remainingSeconds = paymentRemaining === null ? null : Math.ceil(paymentRemaining / 1000);
   const countdown = remainingSeconds === null ? '' : `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`;
+  const clickableForPayment = !isAdmin && order.paymentStatus === 'Unpaid' && order.status !== 'Cancelled';
+
+  function handleCardClick(event) {
+    if (!clickableForPayment) return;
+    // Let the card's own controls (buttons, links, history, cancel modal) keep their behavior.
+    if (event.target.closest('button, a, select, input, details, summary, .modal-backdrop')) return;
+    navigate(`/payment?orderId=${encodeURIComponent(order.id)}`);
+  }
 
   async function changeStatus(event) {
     setActionError('');
@@ -44,7 +53,7 @@ export default function OrderCard({ order, isAdmin = false, onUpdateOrderStatus,
     }
   }
 
-  return <article className="order-card">
+  return <article className={`order-card${clickableForPayment ? ' order-card-clickable' : ''}`} onClick={handleCardClick}>
     {cancelOpen && <ConfirmationModal
       title="Cancel this order?"
       message={`Order ${order.id} will be cancelled. This action is available only while the order is pending.`}
